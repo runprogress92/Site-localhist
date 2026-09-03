@@ -291,3 +291,40 @@ def phenotype(mmp: dict[int, float], weight_kg: float, sex: str = "M") -> str | 
     if vo2 >= max(sprint, anaerobic, threshold):
         return "Grimpeur / puncheur"
     return "Profil équilibré (tout-terrain)"
+
+
+# ------------------------------------------- modèle puissance-durée complet
+def power_duration(t: float, cp: float, w_prime: float,
+                   p_max: float | None = None) -> float:
+    """Modèle à 3 paramètres de Morton (1996) :
+
+        P(t) = CP + W' / (t + W'/(Pmax − CP))
+
+    Le modèle hyperbolique à 2 paramètres diverge quand t tend vers zéro
+    (il prédirait plusieurs milliers de watts sur 5 s). Le terme correctif de
+    Morton borne la courbe par la puissance maximale instantanée : P(0) = Pmax
+    et P(∞) = CP. C'est le modèle à utiliser dès qu'on descend sous 2 minutes.
+    """
+    if t <= 0 or not cp or not w_prime:
+        return 0.0
+    if not p_max or p_max <= cp:
+        return cp + w_prime / t
+    k = w_prime / (p_max - cp)
+    return cp + w_prime / (t + k)
+
+
+def speed_duration(t: float, cs: float, d_prime: float,
+                   v_max: float | None = None) -> float:
+    """Équivalent en course : modèle vitesse-durée borné par la vitesse maximale."""
+    if t <= 0 or not cs:
+        return 0.0
+    if not v_max or v_max <= cs:
+        return cs + (d_prime or 0) / t
+    k = (d_prime or 0) / (v_max - cs)
+    return cs + (d_prime or 0) / (t + k)
+
+
+def modeled_curve(durations, cp: float, w_prime: float,
+                  p_max: float | None = None) -> dict[int, float]:
+    """Courbe puissance-durée théorique, pour comparaison avec la courbe réelle."""
+    return {int(d): round(power_duration(d, cp, w_prime, p_max), 1) for d in durations}

@@ -161,23 +161,35 @@ def project_forward(ctl: float, atl: float, planned: Sequence[float]) -> list[di
 
 
 def taper_plan(ctl: float, atl: float, days: int = 14,
-               target_tsb: float = 15.0) -> list[float]:
-    """Cherche par dichotomie le facteur de réduction de charge quotidienne
-    qui amène le TSB à la cible le dernier jour de l'affûtage.
+               target_tsb: float = 15.0, taper_days: int | None = None) -> list[float]:
+    """Construit une trajectoire de charge qui amène le TSB à la cible le jour J.
 
-    La charge de départ est CTL (maintien) ; on la multiplie par un
-    coefficient constant recherché entre 0 et 1,5.
+    Un affûtage n'occupe que les deux ou trois dernières semaines : au-delà,
+    la charge doit être *maintenue*, sinon la condition (CTL) se perd bien
+    avant l'échéance. La trajectoire comporte donc deux segments :
+
+    * un **maintien** à hauteur de CTL, qui laisse le niveau de forme stable ;
+    * un **affûtage** de ``taper_days`` jours à charge réduite, dont le
+      coefficient est recherché par dichotomie pour atteindre exactement le
+      TSB visé le dernier jour.
+
+    Bosquet et al. (2007) situent l'affûtage optimal entre 8 et 14 jours,
+    avec une réduction de volume de 40 à 60 %.
     """
+    if days <= 0:
+        return []
+    taper_days = min(days, taper_days if taper_days is not None else 14)
+    hold_days = days - taper_days
+
     lo, hi = 0.0, 1.5
     best: list[float] = []
-    for _ in range(40):
+    for _ in range(50):
         mid = (lo + hi) / 2
-        loads = [ctl * mid] * days
-        proj = project_forward(ctl, atl, loads)
-        final_tsb = proj[-1]["tsb"]
+        loads = [ctl] * hold_days + [ctl * mid] * taper_days
+        final_tsb = project_forward(ctl, atl, loads)[-1]["tsb"]
         best = loads
         if final_tsb < target_tsb:
-            hi = mid          # trop de charge → réduire
+            hi = mid          # encore trop de charge → réduire
         else:
             lo = mid
     return [round(v, 1) for v in best]
