@@ -8,7 +8,6 @@ séance*, jamais le plus récent.
 from __future__ import annotations
 
 from datetime import date, datetime
-from functools import lru_cache
 
 from . import db
 from .science import zones as Z

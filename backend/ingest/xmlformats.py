@@ -19,6 +19,9 @@ from typing import Any
 
 _NS_RE = re.compile(r"\{.*?\}")
 
+# Écart maximal comblé par interpolation lors du rééchantillonnage (secondes)
+MAX_GAP_S = 60
+
 
 def _tag(element) -> str:
     """Nom de balise débarrassé de son espace de noms."""
@@ -163,12 +166,22 @@ def parse_gpx(source) -> dict:
     track_name = _text(name_el)
     type_el = _deep(root, "type")
     type_text = (_text(type_el) or "").lower()
-    if "run" in type_text or "cours" in type_text:
+    # L'ordre compte : « trail_running » contient « run », il doit donc être
+    # testé avant la course sur route.
+    if "trail" in type_text:
+        sport = "trail_running"
+    elif "hik" in type_text or "rando" in type_text:
+        sport = "hiking"
+    elif "walk" in type_text or "marche" in type_text:
+        sport = "walking"
+    elif "run" in type_text or "cours" in type_text:
         sport = "running"
-    elif "cycl" in type_text or "bike" in type_text or "ride" in type_text or "vélo" in type_text:
+    elif any(k in type_text for k in ("cycl", "bik", "ride", "vélo", "velo", "vtt")):
         sport = "cycling"
     elif "swim" in type_text or "nat" in type_text:
         sport = "swimming"
+    elif "row" in type_text or "aviron" in type_text:
+        sport = "rowing"
 
     for trk in root.iter():
         if _tag(trk) != "trkpt":
@@ -262,13 +275,16 @@ def _finalize(points: list[dict], laps: list[dict], sport: str,
                 prev = (series["lat"][i], series["lon"][i])
                 series["distance"][i] = round(acc, 2)
 
-    # interpolation des trous courts
+    # Interpolation des trous courts (voir ingest/fit.py : même politique).
+    # Les fichiers TCX exportés par Garmin et Polar utilisent souvent un
+    # enregistrement à intervalle variable ; sans comblement, les séries
+    # seraient majoritairement vides et fausseraient toutes les moyennes.
     for values in series.values():
         last = None
         for i, v in enumerate(values):
             if v is None:
                 continue
-            if last is not None and 1 < i - last <= 30:
+            if last is not None and 1 < i - last <= MAX_GAP_S:
                 a, gap = values[last], i - last
                 for j in range(1, gap):
                     values[last + j] = a + (v - a) * j / gap

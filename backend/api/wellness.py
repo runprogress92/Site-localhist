@@ -1,7 +1,6 @@
 """Endpoints Bien-être : relevés quotidiens, VFC, disponibilité."""
 from __future__ import annotations
 
-import math
 import statistics
 from datetime import date, timedelta
 

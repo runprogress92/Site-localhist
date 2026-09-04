@@ -39,6 +39,9 @@ from typing import Any, BinaryIO, Iterator
 # Époque FIT : 31 décembre 1989 à 00:00:00 UTC
 FIT_EPOCH = datetime(1989, 12, 31, 0, 0, 0, tzinfo=timezone.utc)
 
+# Écart maximal comblé par interpolation lors du rééchantillonnage (secondes)
+MAX_GAP_S = 60
+
 # type de base -> (format struct, taille, valeur invalide, est_numérique)
 BASE_TYPES: dict[int, tuple[str, int, Any, bool]] = {
     0x00: ("B", 1, 0xFF, True),                  # enum
@@ -527,12 +530,16 @@ def to_streams(records: list[dict]) -> dict[str, list]:
         if r.get("position_long") is not None:
             series["lon"][i] = semicircles_to_degrees(r["position_long"])
 
-    # maintien de la dernière valeur sur les trous courts (< 30 s)
+    # Comblement des trous courts par interpolation linéaire.
+    # Limite à 60 s : l'« enregistrement intelligent » de Garmin espace
+    # couramment les points de 30 à 60 s sur les portions régulières, et
+    # laisser ces trous viderait les séries. Au-delà d'une minute, en
+    # revanche, il s'agit d'un arrêt réel : on ne comble pas.
     for key, values in series.items():
         last_idx = None
         for i, v in enumerate(values):
             if v is not None:
-                if last_idx is not None and i - last_idx <= 30:
+                if last_idx is not None and i - last_idx <= MAX_GAP_S:
                     prev = values[last_idx]
                     gap = i - last_idx
                     for j in range(1, gap):     # interpolation linéaire

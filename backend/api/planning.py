@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
-from .. import db, profiles
+from .. import db
 from ..science import pmc as PMC
 from ..server import ROUTER, bad_request, not_found
 
@@ -12,14 +12,19 @@ WORKOUT_FIELDS = ("date", "sport", "name", "description", "structure",
                   "target_load", "target_duration_s", "target_distance_m",
                   "intensity", "status", "coach_notes")
 
+# Charge produite par une séance ENTIÈRE de ce type, par heure — échauffement
+# et retour au calme compris. Ce n'est pas l'intensité du bloc principal :
+# une séance « au seuil » ne se court pas au seuil de bout en bout, et retenir
+# 95 points/heure produirait des séances deux fois trop courtes.
+# Valeurs mesurées sur les séances de référence du générateur.
 INTENSITY_TEMPLATES = {
-    "récupération": {"load_per_hour": 30, "color": "#5b8fd6"},
-    "endurance": {"load_per_hour": 55, "color": "#3fb98c"},
-    "tempo": {"load_per_hour": 80, "color": "#c9c04a"},
-    "seuil": {"load_per_hour": 95, "color": "#e08d3c"},
-    "VO2max": {"load_per_hour": 115, "color": "#d8543f"},
-    "neuromusculaire": {"load_per_hour": 70, "color": "#7b56c9"},
-    "compétition": {"load_per_hour": 120, "color": "#b1418b"},
+    "récupération": {"load_per_hour": 32, "color": "#5b8fd6"},
+    "endurance": {"load_per_hour": 51, "color": "#3fb98c"},
+    "tempo": {"load_per_hour": 65, "color": "#c9c04a"},
+    "seuil": {"load_per_hour": 74, "color": "#e08d3c"},
+    "VO2max": {"load_per_hour": 70, "color": "#d8543f"},
+    "neuromusculaire": {"load_per_hour": 58, "color": "#7b56c9"},
+    "compétition": {"load_per_hour": 100, "color": "#b1418b"},
 }
 
 
@@ -141,11 +146,20 @@ def compliance(request):
         row["actual_load"] = round(actual.get(row["week"], 0) or 0, 1)
         row["rate"] = (round(100 * row["completed"] / row["planned"], 1)
                        if row["planned"] else None)
-    total_planned = sum(r["planned"] for r in rows)
-    total_done = sum(r["completed"] for r in rows)
+    # Les séances encore à venir ne peuvent pas être « manquées » : les
+    # inclure dans le dénominateur ferait chuter le taux sans raison.
+    today = date.today().isoformat()
+    past = db.query_one(
+        "SELECT COUNT(*) AS planned,"
+        " SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed"
+        " FROM planned_workouts WHERE athlete_id = ? AND date >= ? AND date < ?",
+        (athlete_id, since, today)) or {}
+    total_planned = past.get("planned") or 0
+    total_done = past.get("completed") or 0
     return {"weeks": rows,
             "overall_rate": round(100 * total_done / total_planned, 1) if total_planned else None,
-            "planned": total_planned, "completed": total_done}
+            "planned": total_planned, "completed": total_done,
+            "upcoming": sum(r["planned"] for r in rows) - total_planned}
 
 
 # -------------------------------------------------------------------- blocs

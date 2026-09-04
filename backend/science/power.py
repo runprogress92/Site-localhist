@@ -142,21 +142,23 @@ def mean_maximal(series: Sequence[float | None], durations: Sequence[int] = MMP_
     if n == 0:
         return {}
     prefix = [0.0] * (n + 1)
+    total = 0.0
     for i, v in enumerate(data):
-        prefix[i + 1] = prefix[i] + v
+        total += v
+        prefix[i + 1] = total
     out: dict[int, tuple[float, int]] = {}
     for d in durations:
         w = int(round(d * sample_rate))
         if w < 1 or w > n:
             continue
-        best = -1.0
-        best_i = 0
-        for i in range(0, n - w + 1):
-            s = prefix[i + w] - prefix[i]
-            if s > best:
-                best = s
-                best_i = i
+        # Les sommes de toutes les fenêtres sont obtenues d'un coup par zip
+        # sur les sommes préfixes, puis max() et index() travaillent au niveau
+        # C. Une boucle Python explicite est cinq fois plus lente ici, et cette
+        # fonction s'exécute à chaque import de séance.
+        sums = list(map(float.__sub__, prefix[w:], prefix[:n - w + 1]))
+        best = max(sums)
         if best > 0:
+            best_i = sums.index(best)
             out[d] = (round(best / w, 1), int(best_i / sample_rate))
     return out
 

@@ -1,16 +1,13 @@
 """Endpoints Système : réglages, équipes, état, sauvegarde, jeu de démonstration."""
 from __future__ import annotations
 
-import json
-import shutil
-import subprocess
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date
 from pathlib import Path
 
 from .. import db, settings
 from ..ingest import pipeline
-from ..server import ROUTER, Response, bad_request, not_found
+from ..server import ROUTER, Response, bad_request
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 

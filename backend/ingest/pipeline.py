@@ -16,7 +16,7 @@ de FTP ne nécessite pas de relire le fichier source.
 from __future__ import annotations
 
 import statistics
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 

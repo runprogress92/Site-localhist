@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import statistics
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from .. import db, profiles
 from ..science import pmc as PMC
 from ..science import zones as Z
-from ..server import ROUTER, bad_request, not_found
+from ..server import ROUTER, bad_request
 
 
 @ROUTER.get("/api/athletes/<int:athlete_id>/pmc")

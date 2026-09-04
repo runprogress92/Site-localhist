@@ -65,9 +65,12 @@ def find_port(host: str, port: int, attempts: int = 20) -> int:
 def self_check() -> int:
     """Vérifie que chaque brique répond correctement."""
     from backend import db, settings
-    from backend.ingest import fit, fit_writer, pipeline, xmlformats
-    from backend.science import (hrv, load, physiology, pmc, power, readiness,
-                                 risk, running, zones)
+    # Ces modules sont importés pour vérifier qu'ils se chargent : une erreur
+    # de syntaxe ou une dépendance manquante se manifeste ici, avant que
+    # l'utilisateur ne rencontre une page blanche.
+    from backend.ingest import fit, fit_writer, pipeline, xmlformats  # noqa: F401
+    from backend.science import (hrv, load, physiology, pmc, power,  # noqa: F401
+                                 readiness, risk, running, zones)
     checks: list[tuple[str, bool, str]] = []
 
     checks.append(("Version de Python", sys.version_info >= MIN_PYTHON,
@@ -169,8 +172,13 @@ def main() -> None:
     athletes = db.scalar("SELECT COUNT(*) FROM athletes", default=0)
     if args.seed or (athletes == 0 and _ask_seed()):
         from backend.seed.generate import generate
-        print("\n  Génération du jeu de démonstration "
-              f"({args.seed_athletes} athlètes, {args.seed_days} jours)…")
+        # Environ 18 s par athlète pour 400 jours : chaque séance récente est
+        # produite sous forme de flux à 1 Hz puis passée dans le pipeline
+        # d'analyse réel, exactement comme un fichier importé.
+        estimate = round(args.seed_athletes * args.seed_days / 22)
+        print(f"\n  Génération du jeu de démonstration : {args.seed_athletes} "
+              f"athlètes sur {args.seed_days} jours, environ "
+              f"{estimate // 60} min {estimate % 60:02d} s.\n")
         generate(athletes=args.seed_athletes, days=args.seed_days,
                  stream_days=min(130, args.seed_days), reset=True)
 
@@ -206,8 +214,8 @@ def _ask_seed() -> bool:
     if not sys.stdin.isatty():
         print("  Génération automatique du jeu de démonstration.")
         return True
-    answer = input("  Générer un jeu de démonstration (10 athlètes, "
-                   "14 mois d'historique) ? [O/n] ").strip().lower()
+    answer = input("  Générer un jeu de démonstration (8 athlètes, "
+                   "13 mois d'historique, ~2 min) ? [O/n] ").strip().lower()
     return answer in ("", "o", "oui", "y", "yes")
 
 

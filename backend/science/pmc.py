@@ -22,7 +22,7 @@ from __future__ import annotations
 import math
 import statistics
 from datetime import date, timedelta
-from typing import Iterable, Sequence
+from typing import Sequence
 
 CTL_TAU = 42.0
 ATL_TAU = 7.0

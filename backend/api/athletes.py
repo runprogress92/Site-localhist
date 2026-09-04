@@ -1,8 +1,7 @@
 """Endpoints Athlètes : fiche, profil physiologique, zones, synthèse."""
 from __future__ import annotations
 
-import statistics
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from .. import db, profiles
 from ..ingest import pipeline

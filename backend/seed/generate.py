@@ -16,7 +16,6 @@ import json
 import math
 import random
 import statistics
-import sys
 import time
 from datetime import date, datetime, timedelta, timezone
 
@@ -608,10 +607,12 @@ def _create_planned(athlete_id: int, archetype: dict, today: date,
     pattern = WEEK_PATTERNS.get(archetype["sessions_per_week"], WEEK_PATTERNS[7])
     created = 0
     monday = today - timedelta(days=today.weekday())
-    for week in range(3):
+    # Huit semaines passées (pour que le taux de réalisation ait un sens)
+    # et trois semaines à venir.
+    for week in range(-8, 3):
         for weekday, shape, share in pattern:
             day = monday + timedelta(days=week * 7 + weekday)
-            if day < today:
+            if day < today - timedelta(days=56):
                 continue
             intensity = {"récupération": "récupération", "endurance": "endurance",
                          "longue": "endurance", "tempo": "tempo", "seuil": "seuil",
@@ -626,6 +627,35 @@ def _create_planned(athlete_id: int, archetype: dict, today: date,
                 "target_duration_s": round(load / template["load_per_hour"] * 3600),
                 "status": "planned"})
             created += 1
+
+    # Rapprochement du plan passé et du réalisé : c'est ce qui donne un taux
+    # de réalisation exploitable dès le premier lancement. Les séances
+    # réalisées sont chargées en une seule requête et les mises à jour
+    # appliquées en une transaction — une requête et un commit par séance
+    # planifiée coûtaient à eux seuls une minute de génération.
+    done = {}
+    for row in db.query(
+            "SELECT id, local_date, sport, load, duration_s FROM activities"
+            " WHERE athlete_id = ? AND local_date < ? ORDER BY duration_s",
+            (athlete_id, today.isoformat())):
+        done[(row["local_date"], row["sport"])] = row      # la plus longue gagne
+
+    updates = []
+    for workout in db.query(
+            "SELECT id, date, sport, target_load FROM planned_workouts"
+            " WHERE athlete_id = ? AND date < ? AND status = 'planned'",
+            (athlete_id, today.isoformat())):
+        candidate = done.get((workout["date"], workout["sport"]))
+        if candidate:
+            compliance = (round(100 * candidate["load"] / workout["target_load"], 1)
+                          if workout["target_load"] and candidate["load"] else None)
+            updates.append(("completed", candidate["id"], compliance, workout["id"]))
+        else:
+            updates.append(("missed", None, None, workout["id"]))
+    if updates:
+        db.executemany(
+            "UPDATE planned_workouts SET status = ?, completed_activity_id = ?,"
+            " compliance_pct = ? WHERE id = ?", updates)
     return created
 
 

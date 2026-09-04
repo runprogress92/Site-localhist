@@ -298,7 +298,6 @@ def export_activities_csv(request):
 @ROUTER.get("/api/activities/<int:activity_id>/export.fit")
 def export_fit(request):
     """Réencode une activité en FIT (portable vers un autre outil)."""
-    from datetime import timezone
     from ..ingest.fit_writer import FitWriter
     activity_id = request.params["activity_id"]
     activity = db.query_one("SELECT * FROM activities WHERE id = ?", (activity_id,))

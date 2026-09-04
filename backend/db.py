@@ -199,10 +199,17 @@ def delete(table: str, row_id: int, key: str = "id") -> int:
 
 # --------------------------------------------------------------- flux (blob)
 def pack_stream(values: Sequence[Any]) -> bytes:
-    """Sérialise une série temporelle : JSON compact + zlib (~8× plus petit)."""
+    """Sérialise une série temporelle : JSON compact + zlib (~8× plus petit).
+
+    Les flottants sont arrondis au millième — au-delà, on stockerait du bruit
+    de mesure et le JSON gonflerait de moitié. Les séries entières (cadence,
+    fréquence cardiaque, temps) sautent l'arrondi : sur une séance longue,
+    cela épargne plusieurs millions d'appels de fonction.
+    """
+    has_floats = any(isinstance(v, float) for v in values[:64])
     payload = json.dumps(
-        [None if v is None else (round(v, 3) if isinstance(v, float) else v)
-         for v in values],
+        [None if v is None else round(v, 3) for v in values] if has_floats
+        else values,
         separators=(",", ":"),
     ).encode("utf-8")
     return zlib.compress(payload, 6)
