@@ -210,10 +210,20 @@ def main() -> None:
 
 
 def _ask_seed() -> bool:
+    """Propose la génération de démonstration quand la base est vide.
+
+    Sans terminal interactif (lancement depuis un script, un raccourci de
+    bureau, un service), on ne génère rien : bloquer le démarrage pendant
+    deux minutes sans possibilité d'interrompre serait le pire des défauts.
+    Le serveur démarre immédiatement et l'interface propose la génération.
+    """
     print("\n  La base est vide.")
     if not sys.stdin.isatty():
-        print("  Génération automatique du jeu de démonstration.")
-        return True
+        print("  Démarrage sur une base vide. Pour un jeu de démonstration :")
+        print("      python3 run.py --seed")
+        print("  ou, depuis l'interface : Réglages → Régénérer le jeu de "
+              "démonstration.")
+        return False
     answer = input("  Générer un jeu de démonstration (8 athlètes, "
                    "13 mois d'historique, ~2 min) ? [O/n] ").strip().lower()
     return answer in ("", "o", "oui", "y", "yes")

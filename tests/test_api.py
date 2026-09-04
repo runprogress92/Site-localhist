@@ -213,6 +213,24 @@ class ApiTestCase(unittest.TestCase):
         self.assertAlmostEqual(data["final"]["tsb"], 18, delta=1.5)
         self.assertEqual(data["hold_days"] + data["taper_days"], data["days"])
 
+    def test_taper_unavailable_is_not_an_error(self):
+        """Sans objectif ni historique, la réponse doit rester un 200 explicite :
+        c'est l'état normal d'un athlète qu'on vient de créer."""
+        created = self.call("/api/athletes", "POST", {
+            "first_name": "Sans", "last_name": "Historique"}, expect=201)
+        data = self.call(f"/api/athletes/{created['id']}/taper")
+        self.assertFalse(data["available"])
+        self.assertIn("objectif", data["reason"].lower())
+        self.call(f"/api/athletes/{created['id']}?hard=true", "DELETE")
+
+    def test_fueling_plan(self):
+        athlete = self.first_athlete()
+        data = self.call(f"/api/athletes/{athlete['id']}/fueling"
+                         "?duration_s=14400&temp_c=30&humidity_pct=70")
+        self.assertGreaterEqual(data["carbs"]["g_per_hour"], 80)
+        self.assertIn(data["heat"]["risk"], ("modéré", "élevé", "extrême — séance intense déconseillée"))
+        self.assertGreater(data["heat"]["pace_penalty_pct"], 0)
+
     def test_zone_distribution_and_polarization(self):
         athlete = self.first_athlete()
         data = self.call(f"/api/athletes/{athlete['id']}/zone-distribution?days=60")

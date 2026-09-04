@@ -79,6 +79,12 @@ function renderSidebar() {
             el('span.nav-label.truncate',
                `${athlete.first_name} ${athlete.last_name}`),
           ])),
+        el('button.nav-athlete', {
+          onclick: async () => {
+            const { openAthleteForm } = await import('./views/athlete-form.js');
+            openAthleteForm(null, refreshRoster);
+          },
+        }, [icon('plus', 'nav-icon'), el('span.nav-label', 'Ajouter un athlète')]),
       ]) : null,
     ]),
     el('div.sidebar-foot', [

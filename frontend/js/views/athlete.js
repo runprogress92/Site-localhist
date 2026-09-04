@@ -17,6 +17,7 @@ import {
 import { gauge, pmcChart, powerCurve, sparkline, stackedBars, timeSeries, zoneBars,
          scatter } from '../charts/plots.js';
 import { lactateCurve } from '../charts/streams.js';
+import { openAthleteForm } from './athlete-form.js';
 
 const TABS = [
   { key: 'synthese', label: 'Synthèse' },
@@ -51,7 +52,7 @@ export async function render(root, context) {
         render(root, context);
       }),
       el('button.btn.sm', {
-        onclick: () => openEditAthlete(athlete, () => render(root, context)),
+        onclick: () => openAthleteForm(athlete, () => render(root, context)),
       }, [icon('edit'), 'Modifier']),
     ])));
 
@@ -697,6 +698,10 @@ async function tabPhysiology(root, ctx) {
       { subtitle: '18 derniers mois — les points correspondent aux mises à jour de profil',
         className: 'section' }),
 
+    card('Nutrition et conditions', el('div', { id: 'fueling-panel' }), {
+      subtitle: 'apports recommandés et effet de la chaleur pour une séance donnée',
+      className: 'section' }),
+
     el('section.section', [
       el('div.between', { style: { marginBottom: 'var(--sp-4)' } }, [
         el('div.section-title', 'Tests et évaluations'),
@@ -735,6 +740,8 @@ async function tabPhysiology(root, ctx) {
           el('div.chart-empty', 'Historique insuffisant pour tracer une évolution.'));
   }
 
+  renderFueling(athleteId);
+
   for (const test of tests.tests.slice(0, 4)) {
     const node = document.getElementById(`lactate-${test.id}`);
     if (node && test.points?.length) {
@@ -750,6 +757,72 @@ async function tabPhysiology(root, ctx) {
       }
     }
   }
+}
+
+/**
+ * Panneau nutrition : durée et conditions météo choisies par l'entraîneur,
+ * apports glucidiques et hydriques recalculés à la volée.
+ */
+function renderFueling(athleteId) {
+  const node = document.getElementById('fueling-panel');
+  if (!node) return;
+  const state = { duration_s: 7200, temp_c: 22, humidity_pct: 60 };
+  const output = el('div', { style: { marginTop: 'var(--sp-4)' } });
+
+  const controls = el('div.grid.grid-3', [
+    field('Durée de la séance', select([
+      { value: 2700, label: '45 minutes' }, { value: 5400, label: '1 h 30' },
+      { value: 7200, label: '2 heures', selected: true },
+      { value: 10800, label: '3 heures' }, { value: 14400, label: '4 heures' },
+      { value: 21600, label: '6 heures' }, { value: 36000, label: '10 heures' },
+    ], { onchange: (e) => { state.duration_s = Number(e.target.value); load(); } })),
+    field('Température (°C)', input({ type: 'number', value: state.temp_c,
+      onchange: (e) => { state.temp_c = Number(e.target.value); load(); } })),
+    field('Humidité (%)', input({ type: 'number', value: state.humidity_pct,
+      min: 0, max: 100,
+      onchange: (e) => { state.humidity_pct = Number(e.target.value); load(); } })),
+  ]);
+  mount(node, [controls, output]);
+
+  async function load() {
+    try {
+      const data = await api.fueling(athleteId, state);
+      const heat = data.heat || {};
+      mount(output, [
+        el('div.grid.grid-4', [
+          metric('Glucides', `${F.num(data.carbs.g_per_hour)} g/h`, {
+            sub: `${F.num(data.carbs.total_g)} g au total`, size: 'sm' }),
+          metric('Boisson', `${F.num((data.hydration?.baseline_ml_h || 0)
+            + (heat.extra_fluid_ml_h || 0))} ml/h`, {
+            sub: heat.extra_fluid_ml_h
+              ? `dont ${F.num(heat.extra_fluid_ml_h)} ml liés à la chaleur`
+              : 'conditions tempérées', size: 'sm' }),
+          metric('Sodium', `${F.num(data.carbs.sodium_mg_per_hour)} mg/h`, {
+            sub: 'apport de référence', size: 'sm' }),
+          metric('Contrainte thermique', heat.wbgt != null
+            ? `WBGT ${F.num(heat.wbgt, 1)}` : '—', {
+            sub: heat.risk ? `risque ${heat.risk}` : null, size: 'sm',
+            color: heat.risk === 'faible' ? 'var(--positive)'
+                 : heat.risk === 'modéré' ? 'var(--text)'
+                 : 'var(--warning)' }),
+        ]),
+        el('div.note-box', { style: { marginTop: 'var(--sp-4)' } }, data.carbs.note),
+        heat.pace_penalty_pct
+          ? el('div.definition', { style: { marginTop: 'var(--sp-3)' } },
+              `À ${F.num(state.temp_c)} °C et ${F.num(state.humidity_pct)} % d’humidité, `
+              + `attendez-vous à une allure plus lente d’environ `
+              + `${F.num(heat.pace_penalty_pct, 1)} % à effort perçu égal. `
+              + `Ajustez les allures cibles en conséquence plutôt que de les tenir `
+              + `au prix d’une dérive cardiaque.`)
+          : null,
+        data.hydration
+          ? el('div.definition', { style: { marginTop: 'var(--sp-3)' } },
+              data.hydration.note)
+          : null,
+      ]);
+    } catch (error) { mount(output, el('div.chart-empty', error.message)); }
+  }
+  load();
 }
 
 function zoneTable(zones, unit, isPace = false) {
@@ -832,8 +905,7 @@ async function tabPlanning(root, ctx) {
                              to: F.isoDate(F.addDays(new Date(), 28)) }),
     api.events(athleteId), api.blocks(athleteId), api.compliance(athleteId, 12),
   ]);
-  let taper = null;
-  try { taper = await api.taper(athleteId, { tsb: 15 }); } catch { /* aucun objectif A */ }
+  const taper = await api.taper(athleteId, { tsb: 15 }).catch(() => null);
 
   mount(root, [
     el('div.between.section', [
@@ -855,9 +927,12 @@ async function tabPlanning(root, ctx) {
     ]),
     weeksStrip(planned.planned),
 
-    taper ? card('Simulation d’affûtage', taperPanel(taper),
-      { subtitle: `Objectif du ${F.date(taper.target_date, 'long')} — recherche de la `
-                + `charge qui amène la forme à +${F.num(taper.target_tsb, 0)} le jour J`,
+    taper ? card('Simulation d’affûtage',
+      taper.available ? taperPanel(taper) : el('div.note-box', taper.reason),
+      { subtitle: taper.available
+          ? `Objectif du ${F.date(taper.target_date, 'long')} — recherche de la `
+            + `charge qui amène la forme à +${F.num(taper.target_tsb, 0)} le jour J`
+          : 'non disponible pour le moment',
         className: 'section' }) : null,
 
     el('div.grid.grid-2.section', [
@@ -1235,46 +1310,6 @@ function openGenerateWeek(athleteId, reload) {
       { label: 'Générer', primary: true, onClick: async () => {
           const result = await api.generateWeek(athleteId, values);
           toast(`${result.created.length} séances planifiées.`, 'success');
-          reload();
-        } },
-    ],
-  });
-}
-
-function openEditAthlete(athlete, reload) {
-  const values = {};
-  modal({
-    title: 'Modifier la fiche',
-    body: el('div.grid.grid-2', [
-      field('Prénom', input({ value: athlete.first_name,
-        onchange: (e) => { values.first_name = e.target.value; } })),
-      field('Nom', input({ value: athlete.last_name,
-        onchange: (e) => { values.last_name = e.target.value; } })),
-      field('Date de naissance', input({ type: 'date', value: athlete.birth_date || '',
-        onchange: (e) => { values.birth_date = e.target.value; } })),
-      field('Sexe', select([{ value: 'F', label: 'Féminin', selected: athlete.sex === 'F' },
-        { value: 'M', label: 'Masculin', selected: athlete.sex === 'M' },
-        { value: 'X', label: 'Non précisé', selected: athlete.sex === 'X' }],
-        { onchange: (e) => { values.sex = e.target.value; } }),
-        'Utilisé par les coefficients du TRIMP de Banister et les normes de VO2max.'),
-      field('Taille (cm)', input({ type: 'number', value: athlete.height_cm || '',
-        onchange: (e) => { values.height_cm = Number(e.target.value) || null; } })),
-      field('Discipline', input({ value: athlete.discipline || '',
-        onchange: (e) => { values.discipline = e.target.value; } })),
-      field('Niveau', select(['loisir', 'compétiteur', 'national', 'élite', 'pro']
-        .map(l => ({ value: l, label: l, selected: athlete.level === l })),
-        { onchange: (e) => { values.level = e.target.value; } })),
-      field('Statut', select([{ value: 'active', label: 'actif', selected: athlete.status === 'active' },
-        { value: 'injured', label: 'blessé', selected: athlete.status === 'injured' },
-        { value: 'paused', label: 'en pause', selected: athlete.status === 'paused' }],
-        { onchange: (e) => { values.status = e.target.value; } })),
-    ]),
-    actions: [
-      { label: 'Annuler', onClick: () => {} },
-      { label: 'Enregistrer', primary: true, onClick: async () => {
-          await api.updateAthlete(athlete.id, values);
-          const { refreshRoster } = await import('../main.js');
-          await refreshRoster();
           reload();
         } },
     ],

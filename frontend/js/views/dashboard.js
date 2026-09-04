@@ -15,6 +15,8 @@ import {
 } from '../lib/ui.js';
 import { sparkline } from '../charts/plots.js';
 import { loadMatrix as matrixChart } from '../charts/streams.js';
+import { openAthleteForm } from './athlete-form.js';
+import { welcomeScreen } from './onboarding.js';
 
 export async function render(root, context) {
   const [overview, matrix] = await Promise.all([
@@ -23,14 +25,25 @@ export async function render(root, context) {
   ]);
   if (context.token.stale) return;
 
+  // Base vide : un tableau de bord rempli de zéros n'apprend rien et ne dit
+  // pas quoi faire. On propose les trois points d'entrée à la place.
+  if (!overview.athletes.length) {
+    setTopbar(pageTitle('Athlytics', 'aucun athlète enregistré'));
+    mount(root, welcomeScreen(() => render(root, context)));
+    return;
+  }
+
   setTopbar(pageTitle(
     "Vue d'ensemble",
     `${overview.totals.athletes} athlètes suivis · semaine du ${F.date(weekStart(), 'medium')}`,
     el('div.row-tight', [
       el('button.btn.sm', { onclick: () => navigate('/bien-etre') },
          [icon('heart'), 'Relevés du jour']),
-      el('button.btn.sm.primary', { onclick: () => navigate('/seances') },
+      el('button.btn.sm', { onclick: () => navigate('/seances') },
          [icon('upload'), 'Importer des séances']),
+      el('button.btn.sm.primary', {
+        onclick: () => openAthleteForm(null, () => render(root, context)),
+      }, [icon('plus'), 'Nouvel athlète']),
     ])));
 
   const flags = overview.totals.flags;

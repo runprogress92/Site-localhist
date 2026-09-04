@@ -244,26 +244,37 @@ def taper(request):
     athlete_id = request.params["athlete_id"]
     target_date = request.q("date")
     target_tsb = request.q_float("tsb", 15.0)
+
+    # Ne pas avoir d'objectif ni d'historique est un état normal pour un
+    # athlète qu'on vient de créer, pas une erreur de la requête : on répond
+    # 200 avec la raison, que l'interface peut afficher telle quelle.
+    def unavailable(reason: str) -> dict:
+        return {"available": False, "reason": reason, "trajectory": [],
+                "target_date": target_date}
+
     if not target_date:
         event = db.query_one(
             "SELECT date, name FROM events WHERE athlete_id = ? AND date >= ?"
             " AND priority = 'A' ORDER BY date LIMIT 1",
             (athlete_id, date.today().isoformat()))
         if not event:
-            raise bad_request("Aucune date cible fournie et aucun objectif A à venir.")
+            return unavailable("Aucun objectif de priorité A à venir. Ajoutez un "
+                               "objectif, ou indiquez une date cible.")
         target_date = event["date"]
 
     days = (date.fromisoformat(target_date) - date.today()).days
     if days < 1:
-        raise bad_request("La date cible doit être dans le futur.")
+        return unavailable("La date cible doit être dans le futur.")
     if days > 120:
-        raise bad_request("Horizon limité à 120 jours.")
+        return unavailable("L'horizon de simulation est limité à 120 jours : "
+                           "au-delà, la projection n'a plus de valeur pratique.")
 
     current = db.query_one(
         "SELECT ctl, atl, tsb FROM daily_load WHERE athlete_id = ?"
         " ORDER BY date DESC LIMIT 1", (athlete_id,))
-    if not current:
-        raise bad_request("Historique de charge insuffisant pour simuler un affûtage.")
+    if not current or not current.get("ctl"):
+        return unavailable("Historique de charge insuffisant : il faut quelques "
+                           "semaines de séances pour simuler un affûtage.")
 
     taper_days = min(days, request.q_int("taper_days", 14))
     loads = PMC.taper_plan(current["ctl"] or 0, current["atl"] or 0, days,
@@ -277,6 +288,7 @@ def taper(request):
     reduction = (round(100 * (1 - weekly / baseline_weekly), 1)
                  if baseline_weekly else None)
     return {
+        "available": True,
         "target_date": target_date, "target_tsb": target_tsb, "days": days,
         "taper_days": taper_days,
         "hold_days": days - taper_days,
