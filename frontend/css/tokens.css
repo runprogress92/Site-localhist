@@ -1,0 +1,122 @@
+/* =====================================================================
+   Athlytics — jetons de design
+   Palette sombre par défaut (usage prolongé, lecture de courbes),
+   thème clair complet pour le travail en extérieur ou en réunion.
+   ===================================================================== */
+
+:root {
+  /* ---------------------------------------------------------- couleurs */
+  --bg:              #0b0e13;
+  --bg-deep:         #070a0e;
+  --surface:         #12161e;
+  --surface-2:       #171c26;
+  --surface-3:       #1d2430;
+  --surface-hover:   #202836;
+  --border:          #222a36;
+  --border-strong:   #2f3a4a;
+  --border-subtle:   #1a212c;
+
+  --text:            #e6eaf0;
+  --text-strong:     #f6f8fb;
+  --text-muted:      #8d9aab;
+  --text-faint:      #5d6878;
+
+  --accent:          #4f8ff7;
+  --accent-hover:    #6ba1fa;
+  --accent-dim:      rgba(79, 143, 247, 0.14);
+  --accent-line:     rgba(79, 143, 247, 0.35);
+
+  --positive:        #3fb98c;
+  --positive-dim:    rgba(63, 185, 140, 0.14);
+  --warning:         #e0a63c;
+  --warning-dim:     rgba(224, 166, 60, 0.14);
+  --danger:          #e2564a;
+  --danger-dim:      rgba(226, 86, 74, 0.14);
+  --info:            #5b8fd6;
+
+  /* zones d'intensité — partagées avec le backend (science/zones.py) */
+  --z1: #5b8fd6;
+  --z2: #3fb98c;
+  --z3: #c9c04a;
+  --z4: #e08d3c;
+  --z5: #d8543f;
+  --z6: #b1418b;
+  --z7: #7b56c9;
+
+  /* courbes du graphique de forme */
+  --ctl:  #4f8ff7;
+  --atl:  #e2564a;
+  --tsb:  #3fb98c;
+  --grid: rgba(255, 255, 255, 0.055);
+  --grid-strong: rgba(255, 255, 255, 0.11);
+
+  /* ------------------------------------------------------ typographie */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono",
+               Menlo, Consolas, monospace;
+
+  --fs-xs:   11px;
+  --fs-sm:   12px;
+  --fs-base: 13px;
+  --fs-md:   14px;
+  --fs-lg:   16px;
+  --fs-xl:   20px;
+  --fs-2xl:  26px;
+  --fs-3xl:  34px;
+  --fs-4xl:  46px;
+
+  /* ------------------------------------------------------- géométrie */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px; --sp-9: 56px;
+
+  --r-sm: 5px; --r-md: 8px; --r-lg: 12px; --r-xl: 16px; --r-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+
+  --sidebar-w: 232px;
+  --header-h: 58px;
+  --transition: 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root[data-theme="light"] {
+  --bg:              #f4f6f9;
+  --bg-deep:         #e9edf2;
+  --surface:         #ffffff;
+  --surface-2:       #ffffff;
+  --surface-3:       #f2f5f8;
+  --surface-hover:   #eef2f7;
+  --border:          #dde3ea;
+  --border-strong:   #c3ccd7;
+  --border-subtle:   #e8ecf1;
+
+  --text:            #1b2330;
+  --text-strong:     #0d131c;
+  --text-muted:      #5e6b7c;
+  --text-faint:      #8b97a6;
+
+  --accent:          #2c6fe0;
+  --accent-hover:    #1f5cc4;
+  --accent-dim:      rgba(44, 111, 224, 0.10);
+  --accent-line:     rgba(44, 111, 224, 0.30);
+
+  --positive:        #1d8f65;
+  --positive-dim:    rgba(29, 143, 101, 0.11);
+  --warning:         #b47612;
+  --warning-dim:     rgba(180, 118, 18, 0.11);
+  --danger:          #c9372c;
+  --danger-dim:      rgba(201, 55, 44, 0.10);
+
+  --z1: #4a7cc0; --z2: #2f9a72; --z3: #a49325; --z4: #c1701f;
+  --z5: #c0402c; --z6: #963073; --z7: #6543ad;
+
+  --ctl: #2c6fe0; --atl: #c9372c; --tsb: #1d8f65;
+  --grid: rgba(15, 25, 40, 0.06);
+  --grid-strong: rgba(15, 25, 40, 0.13);
+
+  --shadow-sm: 0 1px 2px rgba(20, 32, 50, 0.06);
+  --shadow-md: 0 4px 14px rgba(20, 32, 50, 0.08);
+  --shadow-lg: 0 18px 44px rgba(20, 32, 50, 0.16);
+}

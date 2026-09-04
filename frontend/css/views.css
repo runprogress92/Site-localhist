@@ -1,0 +1,166 @@
+/* =============================== Vues spécifiques =============================== */
+.loading-screen {
+  display: flex; align-items: center; justify-content: center; gap: var(--sp-3);
+  padding: var(--sp-9); color: var(--text-muted); font-size: var(--fs-sm);
+}
+
+/* ------------------------------------------------------------ fiche athlète */
+.athlete-header {
+  display: flex; align-items: flex-start; gap: var(--sp-5);
+  padding: var(--sp-5) 0 var(--sp-5);
+  border-bottom: 1px solid var(--border); margin-bottom: var(--sp-5);
+}
+.athlete-id { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.athlete-name { font-size: var(--fs-xl); font-weight: 640; letter-spacing: -0.02em; }
+.athlete-meta { display: flex; flex-wrap: wrap; gap: var(--sp-3);
+                font-size: var(--fs-sm); color: var(--text-muted); }
+.athlete-meta span { display: flex; align-items: center; gap: 5px; }
+.athlete-chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 3px;
+  border-radius: var(--r-full); background: var(--surface-3);
+  border: 1px solid var(--border); font-size: var(--fs-sm);
+}
+
+.kpi-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: var(--sp-4); padding: var(--sp-4) 0;
+}
+.kpi { display: flex; flex-direction: column; gap: 2px; padding-left: var(--sp-3);
+       border-left: 2px solid var(--border); }
+.kpi-label { font-size: 10px; font-weight: 650; letter-spacing: 0.08em;
+             text-transform: uppercase; color: var(--text-faint); }
+.kpi-value { font-size: var(--fs-xl); font-weight: 640; letter-spacing: -0.025em;
+             font-variant-numeric: tabular-nums; line-height: 1.15; }
+.kpi-sub { font-size: 11px; color: var(--text-muted); }
+
+/* ------------------------------------------------------------ zones */
+.zone-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.zone-table td { padding: 5px var(--sp-2); border-bottom: 1px solid var(--border-subtle); }
+.zone-table tr:last-child td { border-bottom: none; }
+.zone-swatch { width: 3px; height: 22px; border-radius: 2px; display: block; }
+
+/* ------------------------------------------------------------ séance */
+.activity-hero {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-5);
+  align-items: flex-start; margin-bottom: var(--sp-5);
+}
+.activity-metrics {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: var(--sp-4) var(--sp-5);
+}
+.lap-row td { font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------- bien-être */
+.wellness-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: var(--sp-4);
+}
+.wellness-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: var(--sp-4); display: flex;
+  flex-direction: column; gap: var(--sp-3); border-left-width: 3px;
+}
+.wellness-card.vert   { border-left-color: var(--positive); }
+.wellness-card.ambre  { border-left-color: var(--warning); }
+.wellness-card.rouge  { border-left-color: var(--danger); }
+.wellness-card.inconnu{ border-left-color: var(--border-strong); }
+.wellness-row { display: flex; justify-content: space-between; font-size: var(--fs-sm); }
+.wellness-row span:last-child { font-variant-numeric: tabular-nums; color: var(--text); }
+
+.readiness-drivers { display: flex; flex-direction: column; gap: var(--sp-2); }
+.driver-row { display: grid; grid-template-columns: 118px 1fr 44px; align-items: center;
+              gap: var(--sp-3); font-size: var(--fs-sm); }
+.driver-track { position: relative; height: 6px; background: var(--surface-3);
+                border-radius: 3px; }
+.driver-mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px;
+              background: var(--border-strong); }
+.driver-fill { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+
+/* --------------------------------------------------------- connexions */
+.provider-card {
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: var(--surface); overflow: hidden;
+}
+.provider-head {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border-subtle);
+}
+.provider-logo {
+  width: 38px; height: 38px; border-radius: var(--r-md); display: grid;
+  place-items: center; font-weight: 700; color: #fff; font-size: var(--fs-sm);
+  letter-spacing: -0.02em; flex-shrink: 0;
+}
+.provider-body { padding: var(--sp-4) var(--sp-5); }
+.provider-steps { counter-reset: step; display: flex; flex-direction: column;
+                  gap: var(--sp-2); margin: var(--sp-3) 0; }
+.provider-step {
+  display: flex; gap: var(--sp-3); font-size: var(--fs-sm); color: var(--text-muted);
+  line-height: 1.55;
+}
+.provider-step::before {
+  counter-increment: step; content: counter(step);
+  width: 19px; height: 19px; border-radius: 50%; background: var(--surface-3);
+  color: var(--text-muted); font-size: 10px; font-weight: 700;
+  display: grid; place-items: center; flex-shrink: 0; margin-top: 1px;
+}
+.url-box {
+  font-family: var(--font-mono); font-size: 11.5px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 6px 9px; word-break: break-all; color: var(--text-muted);
+  display: flex; align-items: center; gap: var(--sp-2);
+}
+.url-box code { flex: 1; }
+
+/* ------------------------------------------------------------ planning */
+.week-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--sp-2); }
+.week-day {
+  background: var(--surface); border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md); padding: var(--sp-3); min-height: 128px;
+  display: flex; flex-direction: column; gap: var(--sp-2);
+}
+.week-day.today { border-color: var(--accent); }
+.week-dayname { font-size: 10px; font-weight: 650; text-transform: uppercase;
+                letter-spacing: 0.07em; color: var(--text-faint); }
+.workout-pill {
+  border-radius: var(--r-sm); padding: 6px 8px; font-size: 11.5px;
+  background: var(--surface-3); border-left: 2px solid var(--accent);
+  line-height: 1.35; cursor: pointer;
+}
+.workout-pill .w-name { font-weight: 570; display: block; }
+.workout-pill .w-meta { color: var(--text-faint); font-size: 10.5px; }
+.workout-pill.done { border-left-color: var(--positive); }
+.workout-pill.missed { border-left-color: var(--danger); opacity: 0.7; }
+
+/* --------------------------------------------------------- comparaison */
+.compare-legend { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.compare-item {
+  display: flex; align-items: center; gap: 7px; padding: 4px 10px;
+  border: 1px solid var(--border); border-radius: var(--r-full);
+  font-size: var(--fs-sm); cursor: pointer; transition: all var(--transition);
+}
+.compare-item.on { border-color: var(--border-strong); background: var(--surface-3); }
+.compare-item.off { opacity: 0.42; }
+
+/* -------------------------------------------------------------- divers */
+.definition {
+  font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.6;
+  padding-left: var(--sp-3); border-left: 2px solid var(--border);
+}
+.definition strong { color: var(--text); }
+
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 5px var(--sp-4);
+      font-size: var(--fs-sm); }
+.kv dt { color: var(--text-muted); }
+.kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums;
+         color: var(--text); }
+
+.pill-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+.file-list { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3); }
+.file-item {
+  display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm); font-size: var(--fs-sm);
+}
+.file-item.ok { border-left: 2px solid var(--positive); }
+.file-item.fail { border-left: 2px solid var(--danger); }

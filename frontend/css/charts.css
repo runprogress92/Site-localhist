@@ -1,0 +1,117 @@
+/* ================================== Graphiques ================================== */
+.chart { display: block; overflow: visible; }
+.chart-box { position: relative; width: 100%; }
+
+.grid-line { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.axis-label {
+  font-size: 10.5px; fill: var(--text-faint); font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.axis-title { font-size: 11px; fill: var(--text-muted); font-family: var(--font-sans); }
+.ref-label {
+  font-size: 10px; fill: var(--text-faint); font-family: var(--font-sans);
+  font-weight: 600;
+}
+.crosshair {
+  stroke: var(--text-faint); stroke-width: 1; stroke-dasharray: 3 3;
+  pointer-events: none; transition: opacity 90ms;
+}
+
+.chart-empty, .chart-error {
+  display: grid; place-items: center; min-height: 110px; padding: var(--sp-5);
+  color: var(--text-faint); font-size: var(--fs-sm); text-align: center;
+}
+.chart-error { color: var(--danger); }
+
+/* -------------------------------------------------------------- légende */
+.chart-legend {
+  display: flex; flex-wrap: wrap; gap: var(--sp-4);
+  margin-bottom: var(--sp-3); font-size: var(--fs-sm); color: var(--text-muted);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 11px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+.legend-value { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ infobulle */
+.chart-tooltip {
+  position: fixed; z-index: 500; pointer-events: none;
+  background: var(--surface-3); border: 1px solid var(--border-strong);
+  border-radius: var(--r-md); box-shadow: var(--shadow-lg);
+  padding: var(--sp-3) var(--sp-3); min-width: 150px; max-width: 280px;
+  font-size: var(--fs-sm);
+}
+.tt-title { font-weight: 650; color: var(--text-strong); margin-bottom: 2px;
+            font-size: var(--fs-base); }
+.tt-sub { font-size: var(--fs-xs); color: var(--text-faint); margin-bottom: var(--sp-2); }
+.tt-rows { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
+.tt-row { display: flex; align-items: center; gap: 7px; }
+.tt-swatch { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.tt-label { color: var(--text-muted); flex: 1; }
+.tt-value { font-weight: 640; font-variant-numeric: tabular-nums; color: var(--text-strong); }
+
+/* ------------------------------------------------------------- jauge */
+.gauge-wrap { position: relative; display: inline-grid; place-items: center; }
+.gauge-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1px; pointer-events: none;
+}
+.gauge-value {
+  font-size: var(--fs-2xl); font-weight: 650; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.gauge-label { font-size: 10px; color: var(--text-faint); text-transform: uppercase;
+               letter-spacing: 0.08em; font-weight: 600; }
+.gauge-sub { text-align: center; font-size: var(--fs-sm); color: var(--text-muted);
+             margin-top: var(--sp-2); }
+
+/* ------------------------------------------------------ légende de zones */
+.zone-legend {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: var(--sp-2) var(--sp-4); margin-top: var(--sp-3);
+}
+.zone-legend-item { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); }
+.zone-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.zone-name { color: var(--text-muted); font-weight: 600; min-width: 24px; }
+.zone-time { color: var(--text); margin-left: auto; }
+.zone-pct { color: var(--text-faint); min-width: 34px; text-align: right; }
+
+/* --------------------------------------------------- pistes d'une séance */
+.stream-panel { border-bottom: 1px solid var(--border-subtle); }
+.stream-panel:last-child { border-bottom: none; }
+.stream-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sp-2) var(--sp-4) 0 52px; font-size: var(--fs-sm);
+}
+.stream-label { display: flex; align-items: center; gap: 6px; color: var(--text-muted);
+                font-weight: 550; }
+.stream-dot { width: 8px; height: 8px; border-radius: 2px; }
+.stream-readout { color: var(--text-strong); font-weight: 650; min-height: 18px; }
+.stream-plot { width: 100%; }
+
+/* --------------------------------------------------- matrice de charge */
+.matrix { display: flex; flex-direction: column; gap: 2px; overflow-x: auto;
+          padding-bottom: var(--sp-2); }
+.matrix-row { display: flex; align-items: center; gap: 2px; }
+.matrix-name {
+  width: 132px; flex-shrink: 0; font-size: var(--fs-sm); color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px; padding-right: var(--sp-2);
+}
+.matrix-name .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.matrix-cell {
+  flex: 1; min-width: 9px; height: 20px; border-radius: 2px;
+  transition: transform 90ms, outline-color 90ms;
+  outline: 1px solid transparent;
+}
+.matrix-cell:hover { outline-color: var(--text); transform: scaleY(1.15); }
+.matrix-row.head .matrix-cell { height: 15px; background: none !important; position: relative; }
+.matrix-tick { position: absolute; bottom: 0; left: 0; font-size: 9px;
+               color: var(--text-faint); white-space: nowrap; }
+
+/* --------------------------------------------------------- histogramme */
+.hbars { display: flex; flex-direction: column; gap: var(--sp-2); }
+.hbar-row { display: grid; grid-template-columns: 92px 1fr 68px; align-items: center;
+            gap: var(--sp-3); font-size: var(--fs-sm); }
+.hbar-track { height: 16px; background: var(--surface-3); border-radius: 3px;
+              overflow: hidden; }
+.hbar-fill { height: 100%; border-radius: 3px; transition: width 420ms cubic-bezier(0.4,0,0.2,1); }
+.hbar-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); }

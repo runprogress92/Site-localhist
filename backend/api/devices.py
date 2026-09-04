@@ -59,6 +59,10 @@ def list_providers(request):
         " JOIN athletes a ON a.id = pa.athlete_id ORDER BY a.last_name")
     by_provider: dict[str, list] = {}
     for account in accounts:
+        # On ne renvoie jamais les jetons ; on indique seulement s'il en existe
+        # un, pour distinguer un compte réellement relié d'un compte de
+        # démonstration.
+        account["has_token"] = bool(account.get("access_token"))
         account.pop("access_token", None)
         account.pop("refresh_token", None)
         account.pop("token_secret", None)
@@ -67,7 +71,8 @@ def list_providers(request):
     for provider in providers:
         provider["accounts"] = by_provider.get(provider["key"], [])
         provider["connected_count"] = sum(
-            1 for a in provider["accounts"] if a["status"] == "connected")
+            1 for a in provider["accounts"]
+            if a["status"] == "connected" and a.get("has_token"))
         provider["help"] = HELP.get(provider["key"], {})
         provider["webhook_url"] = f"{base}/api/webhooks/{provider['key']}"
     return {"providers": providers, "base_url": base,
