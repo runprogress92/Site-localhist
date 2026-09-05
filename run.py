@@ -169,8 +169,12 @@ def main() -> None:
         generate(athletes=0, days=0, reset=True, verbose=False)
         print("  Base réinitialisée.")
 
-    athletes = db.scalar("SELECT COUNT(*) FROM athletes", default=0)
-    if args.seed or (athletes == 0 and _ask_seed()):
+    # La génération de démonstration ne doit JAMAIS précéder le démarrage du
+    # serveur. Poser la question ici bloquait le lancement sur une invite que
+    # rien ne signale comme telle : l'utilisateur voyait une fenêtre figée et
+    # un site injoignable. L'écran d'accueil de l'interface propose la même
+    # génération, avec un bouton, une fois le site accessible.
+    if args.seed:
         from backend.seed.generate import generate
         # Environ 18 s par athlète pour 400 jours : chaque séance récente est
         # produite sous forme de flux à 1 Hz puis passée dans le pipeline
@@ -182,6 +186,8 @@ def main() -> None:
         generate(athletes=args.seed_athletes, days=args.seed_days,
                  stream_days=min(130, args.seed_days), reset=True)
 
+    athletes = db.scalar("SELECT COUNT(*) FROM athletes", default=0)
+
     actual_port = find_port(host, port)
     if actual_port != port:
         print(f"  Port {port} occupé, bascule sur {actual_port}.")
@@ -190,13 +196,21 @@ def main() -> None:
     httpd = serve(host, actual_port, verbose=args.verbose)
     stats = db.db_stats()
     print(BANNER)
-    print(f"   Interface     {url}")
-    print(f"   Base          {stats['path']}  ({stats['size_mb']} Mo)")
-    print(f"   Contenu       {stats['counts'].get('athletes', 0)} athlètes · "
-          f"{stats['counts'].get('activities', 0)} séances · "
-          f"{stats['counts'].get('wellness', 0)} relevés quotidiens")
+    print("   " + "-" * 52)
+    print(f"     LE SITE EST EN LIGNE :  {url}")
+    print("     Ouvrez cette adresse dans votre navigateur")
+    print("     si elle ne s'ouvre pas toute seule.")
+    print("   " + "-" * 52 + "\n")
+    if athletes == 0:
+        print("   La base est vide : la page d'accueil vous proposera de")
+        print("   générer un jeu de démonstration, ou de créer un athlète.\n")
+    else:
+        print(f"   Contenu       {stats['counts'].get('athletes', 0)} athlètes · "
+              f"{stats['counts'].get('activities', 0)} séances · "
+              f"{stats['counts'].get('wellness', 0)} relevés quotidiens")
+    print(f"   Base          {stats['path']}")
     print(f"   Python        {sys.version.split()[0]} — aucune dépendance externe")
-    print("\n   Ctrl+C pour arrêter.\n")
+    print("\n   Laissez cette fenêtre ouverte. Ctrl+C pour arrêter.\n")
 
     if not args.no_browser and config.get("open_browser", True):
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
@@ -207,26 +221,6 @@ def main() -> None:
         print("\n   Arrêt du serveur…")
     finally:
         httpd.server_close()
-
-
-def _ask_seed() -> bool:
-    """Propose la génération de démonstration quand la base est vide.
-
-    Sans terminal interactif (lancement depuis un script, un raccourci de
-    bureau, un service), on ne génère rien : bloquer le démarrage pendant
-    deux minutes sans possibilité d'interrompre serait le pire des défauts.
-    Le serveur démarre immédiatement et l'interface propose la génération.
-    """
-    print("\n  La base est vide.")
-    if not sys.stdin.isatty():
-        print("  Démarrage sur une base vide. Pour un jeu de démonstration :")
-        print("      python3 run.py --seed")
-        print("  ou, depuis l'interface : Réglages → Régénérer le jeu de "
-              "démonstration.")
-        return False
-    answer = input("  Générer un jeu de démonstration (8 athlètes, "
-                   "13 mois d'historique, ~2 min) ? [O/n] ").strip().lower()
-    return answer in ("", "o", "oui", "y", "yes")
 
 
 if __name__ == "__main__":

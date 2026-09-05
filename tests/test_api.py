@@ -128,7 +128,17 @@ class ApiTestCase(unittest.TestCase):
         self.assertIn("context", detail)
         streams = self.call(f"/api/activities/{activity_id}/streams?points=500")
         self.assertIn("heart_rate", streams["streams"])
-        self.assertLessEqual(len(streams["streams"]["heart_rate"]), 520)
+        # Le sous-échantillonnage regroupe par blocs de `step` points : le
+        # compte exact dépend de la durée de la séance, seule la relation
+        # entre n, step et la longueur renvoyée est un contrat. Vérifier un
+        # nombre fixe rendrait le test dépendant du jeu de données tiré.
+        returned = len(streams["streams"]["heart_rate"])
+        expected = -(-streams["n"] // streams["step"])      # division plafond
+        self.assertEqual(returned, expected)
+        self.assertLess(returned, streams["n"] / 2,
+                        "la série renvoyée doit être nettement réduite")
+        self.assertLessEqual(returned, 500 * 1.25,
+                             "et rester proche du nombre de points demandé")
 
     def test_wellness_roundtrip_computes_readiness(self):
         athlete = self.first_athlete()
