@@ -8,13 +8,24 @@ interface web. Aucune donnée ne part vers un service tiers, aucun compte à
 créer, et **aucune dépendance à installer** — la bibliothèque standard de
 Python suffit.
 
+**Le plus simple — double-cliquez sur le fichier de lancement :**
+
+| Windows | macOS et Linux |
+|---|---|
+| `LANCER-LE-SITE.bat` | `LANCER-LE-SITE.command` |
+
+Il vérifie que Python est présent, vous dit quoi faire s'il manque, et
+démarre le site. Aucune ligne de commande à taper.
+
+**Ou en ligne de commande :**
+
 ```bash
 python3 run.py
 ```
 
-L'application s'ouvre sur `http://127.0.0.1:8420`. Au premier lancement,
-elle propose de générer un jeu de démonstration (10 athlètes, 14 mois
-d'historique) pour que tout soit immédiatement visible.
+Dans les deux cas, l'application s'ouvre sur `http://127.0.0.1:8420`. Au
+premier lancement, elle propose de générer un jeu de démonstration
+(8 athlètes, 13 mois d'historique) pour que tout soit immédiatement visible.
 
 ---
 
@@ -67,11 +78,19 @@ des seuils et des pondérations.
 
 **Prérequis :** Python 3.10 ou plus récent. C'est tout.
 
+*Sur Windows*, le plus simple est de l'installer depuis le Microsoft Store
+(cherchez « Python 3.12 ») : les chemins sont configurés automatiquement.
+Sur macOS et Linux, il est le plus souvent déjà présent.
+
 ```bash
 git clone <votre-dépôt> athlytics
 cd athlytics
 python3 run.py
 ```
+
+Sans git, téléchargez le ZIP depuis GitHub (bouton **Code → Download ZIP**),
+extrayez-le, puis double-cliquez sur `LANCER-LE-SITE.bat` (Windows) ou
+`LANCER-LE-SITE.command` (macOS, Linux).
 
 ### Options
 
