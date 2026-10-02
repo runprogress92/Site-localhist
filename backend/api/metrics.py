@@ -205,12 +205,14 @@ def zone_distribution(request):
 
 
 def _polarization_verdict(pi, buckets, total) -> str:
+    # Verdict rédigé en français : la virgule sépare les décimales.
+    index = f"{pi:.2f}".replace(".", ",") if pi is not None else "—"
     low = 100 * buckets[0] / total
     high = 100 * buckets[2] / total
     if pi is None:
         return "Historique insuffisant pour qualifier la distribution."
     if pi > 2.0 and low > 70:
-        return (f"Distribution polarisée (indice {pi:.2f} > 2,00) : {low:.0f} % du "
+        return (f"Distribution polarisée (indice {index} > 2,00) : {low:.0f} % du "
                 f"temps en aisance et {high:.0f} % en haute intensité. C'est le "
                 "profil le mieux documenté chez les athlètes d'endurance de haut niveau.")
     if low > 80 and high < 5:
@@ -221,7 +223,7 @@ def _polarization_verdict(pi, buckets, total) -> str:
         return (f"Distribution « seuil » : {100 * buckets[1] / total:.0f} % du temps "
                 "dans la zone intermédiaire. C'est la zone la plus coûteuse en "
                 "récupération pour un rendement adaptatif modéré — à surveiller.")
-    return (f"Distribution pyramidale (indice {pi:.2f}) : volume majoritairement "
+    return (f"Distribution pyramidale (indice {index}) : volume majoritairement "
             "facile avec une pointe d'intensité, profil classique de préparation.")
 
 

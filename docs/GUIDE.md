@@ -147,6 +147,44 @@ cohérente de la base ; il se remet en place en le renommant
 
 ---
 
+## 11. Emporter le suivi sur le terrain
+
+Au bord d'une piste, l'ordinateur reste à la maison. L'application s'ouvre
+aussi sur un téléphone, en gardant toutes ses données sur l'ordinateur.
+
+**Côté ordinateur**, une seule fois :
+
+1. Fermez la fenêtre noire si elle est ouverte.
+2. Double-cliquez sur **LANCER-SUR-LE-TELEPHONE** au lieu de
+   LANCER-LE-SITE. Un QR code apparaît dans la fenêtre.
+   *(En ligne de commande : `python3 run.py --lan`.)*
+
+**Côté téléphone**, une seule fois :
+
+3. Ouvrez l'appareil photo et visez le QR code. Touchez le lien proposé.
+4. Le site s'ouvre, déjà déverrouillé — le code d'accès était dans le lien.
+5. **iPhone (Safari)** : bouton *Partager* → *Sur l'écran d'accueil*.
+   **Android (Chrome)** : menu *⋮* → *Ajouter à l'écran d'accueil*.
+
+L'icône est maintenant sur le téléphone. Elle ouvre l'application en plein
+écran, sans barre d'adresse.
+
+**Ce qu'il faut savoir**
+
+| | |
+|---|---|
+| Même Wi-Fi | Le téléphone et l'ordinateur doivent être sur le même réseau. |
+| Ordinateur allumé | Le téléphone affiche le site de l'ordinateur, pas une copie en ligne. La fenêtre noire reste ouverte. |
+| Un code par appareil | Demandé une fois, puis mémorisé. Le QR l'apporte tout seul. |
+| Pas de réseau public | Le code protège l'accès, il ne chiffre pas les échanges. À réserver à votre Wi-Fi. |
+| Un téléphone de trop | *Réglages → Connecter mon téléphone → Renouveler le code* : tous les appareils reliés devront rescanner. |
+| Tout refermer | *Refermer l'accès* dans la même carte, ou simplement relancer avec LANCER-LE-SITE. |
+
+Le QR code est aussi affiché en permanence dans **Réglages → Connecter mon
+téléphone**, avec l'adresse et le code en clair pour un deuxième appareil.
+
+---
+
 ## Raccourcis clavier
 
 | Touche | Action |

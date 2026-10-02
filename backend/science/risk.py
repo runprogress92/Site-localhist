@@ -28,6 +28,15 @@ RULES_DOC = {
 }
 
 
+def _fr(value: float, digits: int = 2) -> str:
+    """Nombre écrit à la française : la virgule sépare les décimales.
+
+    Les messages d'alerte sont lus tels quels par l'entraîneur ; un « 6.2 h »
+    au milieu d'une phrase française dénote.
+    """
+    return f"{value:.{digits}f}".replace(".", ",")
+
+
 def _alert(athlete_id, date, code, severity, title, message,
            metric=None, value=None, threshold=None) -> dict:
     return {
@@ -55,7 +64,7 @@ def evaluate(athlete: dict, pmc_rows: Sequence[dict], wellness_rows: Sequence[di
         if acwr > ACWR_DANGER:
             out.append(_alert(aid, day, "acwr_high", "critical",
                               "Ratio charge aiguë:chronique élevé",
-                              f"ACWR à {acwr:.2f} (seuil {ACWR_DANGER:.2f}). "
+                              f"ACWR à {_fr(acwr)} (seuil {_fr(ACWR_DANGER)}). "
                               "Au-delà de 1,50, l'incidence des blessures de "
                               "surcharge augmente nettement dans les 7 à 14 jours. "
                               "Stabiliser la charge une semaine avant toute nouvelle hausse.",
@@ -63,14 +72,14 @@ def evaluate(athlete: dict, pmc_rows: Sequence[dict], wellness_rows: Sequence[di
         elif acwr > 1.30:
             out.append(_alert(aid, day, "acwr_high", "warning",
                               "Charge en progression rapide",
-                              f"ACWR à {acwr:.2f} : au-dessus de la fenêtre "
+                              f"ACWR à {_fr(acwr)} : au-dessus de la fenêtre "
                               "d'équilibre (0,80–1,30) sans être critique. "
                               "Surveiller le ressenti et la VFC.",
                               "acwr", acwr, 1.30))
         elif acwr < 0.80 and last["ctl"] > 25:
             out.append(_alert(aid, day, "acwr_low", "info",
                               "Charge aiguë en retrait",
-                              f"ACWR à {acwr:.2f} : la charge récente est très "
+                              f"ACWR à {_fr(acwr)} : la charge récente est très "
                               "inférieure à l'habitude. Normal en affûtage ou "
                               "après une compétition, à corriger sinon.",
                               "acwr", acwr, 0.80))
@@ -78,7 +87,7 @@ def evaluate(athlete: dict, pmc_rows: Sequence[dict], wellness_rows: Sequence[di
     if last.get("monotony") and last["monotony"] > MONOTONY_WARN:
         out.append(_alert(aid, day, "monotony_high", "warning",
                           "Entraînement trop monotone",
-                          f"Monotonie de Foster à {last['monotony']:.2f} "
+                          f"Monotonie de Foster à {_fr(last['monotony'])} "
                           f"(seuil {MONOTONY_WARN}). Des charges quotidiennes trop "
                           "uniformes limitent la surcompensation. Introduire un "
                           "vrai contraste dur / facile et un jour de repos.",
@@ -87,7 +96,7 @@ def evaluate(athlete: dict, pmc_rows: Sequence[dict], wellness_rows: Sequence[di
     if last.get("strain") and last["strain"] > STRAIN_WARN:
         out.append(_alert(aid, day, "strain_high", "warning",
                           "Contrainte hebdomadaire élevée",
-                          f"Strain à {last['strain']:.0f} (charge hebdomadaire × "
+                          f"Strain à {_fr(last['strain'], 0)} (charge hebdomadaire × "
                           "monotonie). Foster associe les pics de contrainte aux "
                           "épisodes de maladie et de méforme.",
                           "strain", last["strain"], STRAIN_WARN))
@@ -95,8 +104,8 @@ def evaluate(athlete: dict, pmc_rows: Sequence[dict], wellness_rows: Sequence[di
     if last.get("ctl_ramp_7d") and last["ctl_ramp_7d"] > RAMP_WARN:
         out.append(_alert(aid, day, "ramp_high", "warning",
                           "Progression de charge trop rapide",
-                          f"CTL en hausse de {last['ctl_ramp_7d']:.1f} points sur "
-                          f"7 jours (repère prudent : ≤ {RAMP_WARN:.0f}). "
+                          f"CTL en hausse de {_fr(last['ctl_ramp_7d'], 1)} points sur "
+                          f"7 jours (repère prudent : ≤ {_fr(RAMP_WARN, 0)}). "
                           "Une montée en charge soutenable se situe entre 3 et 7 "
                           "points de CTL par semaine.",
                           "ctl_ramp_7d", last["ctl_ramp_7d"], RAMP_WARN))
@@ -105,7 +114,7 @@ def evaluate(athlete: dict, pmc_rows: Sequence[dict], wellness_rows: Sequence[di
     if len(recent_tsb) >= 10 and all(t < -25 for t in recent_tsb):
         out.append(_alert(aid, day, "tsb_low", "warning",
                           "Fatigue résiduelle prolongée",
-                          f"TSB sous −25 depuis 10 jours (actuel {last['tsb']:.0f}). "
+                          f"TSB sous −25 depuis 10 jours (actuel {_fr(last['tsb'], 0)}). "
                           "Soutenable sur un bloc de surcharge court, à condition "
                           "de programmer une décharge dans les jours qui viennent.",
                           "tsb", last["tsb"], -25))
@@ -133,8 +142,8 @@ def evaluate(athlete: dict, pmc_rows: Sequence[dict], wellness_rows: Sequence[di
             if recent_mean < baseline - 0.12:
                 out.append(_alert(aid, day, "hrv_suppressed", "critical",
                                   "VFC durablement basse",
-                                  f"Moyenne 7 jours de ln(RMSSD) à {recent_mean:.2f} "
-                                  f"contre {baseline:.2f} en référence 60 jours. "
+                                  f"Moyenne 7 jours de ln(RMSSD) à {_fr(recent_mean)} "
+                                  f"contre {_fr(baseline)} en référence 60 jours. "
                                   "Une dépression vagale prolongée précède "
                                   "fréquemment la méforme ou l'infection : alléger "
                                   "l'intensité 48 à 72 h.",
@@ -148,8 +157,8 @@ def evaluate(athlete: dict, pmc_rows: Sequence[dict], wellness_rows: Sequence[di
         if cur - base >= 5:
             out.append(_alert(aid, day, "rhr_elevated", "warning",
                               "FC de repos élevée",
-                              f"FC de repos à {cur:.0f} bpm sur 3 jours contre "
-                              f"{base:.0f} bpm en référence (+{cur - base:.0f}). "
+                              f"FC de repos à {_fr(cur, 0)} bpm sur 3 jours contre "
+                              f"{_fr(base, 0)} bpm en référence (+{_fr(cur - base, 0)}). "
                               "Cause fréquente : dette de sommeil, infection "
                               "débutante, déshydratation ou charge non absorbée.",
                               "resting_hr", cur, round(base + 5, 1)))
@@ -160,7 +169,7 @@ def evaluate(athlete: dict, pmc_rows: Sequence[dict], wellness_rows: Sequence[di
         if debt > 300:
             out.append(_alert(aid, day, "sleep_debt", "warning",
                               "Dette de sommeil cumulée",
-                              f"{debt / 60:.1f} h de déficit sur la semaine "
+                              f"{_fr(debt / 60, 1)} h de déficit sur la semaine "
                               "(besoin de référence 8 h). Le sommeil est le "
                               "premier facteur de récupération et de prévention "
                               "des blessures chez le sportif.",

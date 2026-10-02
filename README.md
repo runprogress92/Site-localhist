@@ -10,12 +10,14 @@ Python suffit.
 
 **Le plus simple — double-cliquez sur le fichier de lancement :**
 
-| Windows | macOS et Linux |
-|---|---|
-| `LANCER-LE-SITE.bat` | `LANCER-LE-SITE.command` |
+| | Windows | macOS et Linux |
+|---|---|---|
+| Sur cet ordinateur | `LANCER-LE-SITE.bat` | `LANCER-LE-SITE.command` |
+| Et sur le téléphone | `LANCER-SUR-LE-TELEPHONE.bat` | `LANCER-SUR-LE-TELEPHONE.command` |
 
-Il vérifie que Python est présent, vous dit quoi faire s'il manque, et
-démarre le site. Aucune ligne de commande à taper.
+Ils vérifient que Python est présent, vous disent quoi faire s'il manque, et
+démarrent le site. Aucune ligne de commande à taper. Le second affiche en
+plus un **QR code** à scanner avec le téléphone.
 
 **Ou en ligne de commande :**
 
@@ -33,6 +35,7 @@ premier lancement, elle propose de générer un jeu de démonstration
 
 - [Ce que fait l'application](#ce-que-fait-lapplication)
 - [Installation](#installation)
+- [Sur le téléphone](#sur-le-téléphone)
 - [Récupérer les données de vos montres](#récupérer-les-données-de-vos-montres)
 - [Les indicateurs, et ce qu'ils veulent dire](#les-indicateurs-et-ce-quils-veulent-dire)
 - [Architecture](#architecture)
@@ -96,6 +99,7 @@ extrayez-le, puis double-cliquez sur `LANCER-LE-SITE.bat` (Windows) ou
 
 ```bash
 python3 run.py --port 9000        # autre port
+python3 run.py --lan              # accessible depuis le téléphone + QR code
 python3 run.py --no-browser       # ne pas ouvrir le navigateur
 python3 run.py --seed             # (re)générer le jeu de démonstration
 python3 run.py --seed-athletes 10 --seed-days 500
@@ -115,8 +119,12 @@ python3 run.py --verbose          # journaliser les requêtes
    [OK   ] NP d'un effort constant = moyenne     250 W
    [OK   ] GAP : coût sur le plat = 3,6 J/kg/m   Minetti 2002
    [OK   ] VDOT : 5 km en 20 min ≈ 49            49.8
-   [OK   ] Routes de l'API                       89 routes
+   [OK   ] Routes de l'API                       93 routes
+   [OK   ] QR code : correcteur d'erreurs        vecteur ISO/IEC 18004
+   [OK   ] QR code : encodage d'une adresse      version 3, 29×29
+   [OK   ] Adresse réseau de la machine          192.168.1.24
    [OK   ] Interface web                         index.html
+   [OK   ] Application mobile (PWA)              manifeste + service worker
 ```
 
 ### Où sont mes données ?
@@ -143,6 +151,68 @@ Optionnelle. Créez `config.json` à la racine :
 Les variables d'environnement `ATHLYTICS_PORT`, `ATHLYTICS_HOST`,
 `ATHLYTICS_GARMIN_CLIENT_ID`… ont la priorité. Les clés d'API peuvent aussi
 être saisies directement dans l'interface (page **Montres**).
+
+---
+
+## Sur le téléphone
+
+L'interface s'adapte au format téléphone : barre d'onglets en bas, tableaux
+transformés en fiches, graphiques pilotés au doigt. Elle s'installe sur
+l'écran d'accueil et s'ouvre alors en plein écran, sans barre d'adresse.
+
+### En trois gestes
+
+1. Lancez `LANCER-SUR-LE-TELEPHONE` (ou `python3 run.py --lan`). Un **QR
+   code** s'affiche dans la fenêtre, et la page **Réglages › Connecter mon
+   téléphone** montre le même.
+2. Scannez-le avec l'appareil photo. Le lien contient déjà le code d'accès :
+   rien à taper.
+3. **Ajouter à l'écran d'accueil** — Safari : *Partager › Sur l'écran
+   d'accueil*. Chrome : *menu ⋮ › Ajouter à l'écran d'accueil*.
+
+Le téléphone doit être sur le **même réseau Wi-Fi** que l'ordinateur, et
+l'ordinateur rester allumé avec la fenêtre ouverte : le téléphone affiche le
+site de cette machine, pas une copie en ligne.
+
+### Le code d'accès
+
+Dès que le serveur écoute sur le réseau, tout appareil du même Wi-Fi peut
+atteindre le port. Les données suivies ici sont des données de santé : elles
+ne doivent pas être lisibles par un vestiaire entier. Un code à six chiffres
+est donc demandé une fois par appareil, puis mémorisé dans un cookie.
+
+- Les requêtes venant de l'ordinateur lui-même (boucle locale) en sont
+  dispensées : vous ne saisissez jamais rien sur votre poste.
+- Après cinq essais manqués, une attente s'installe et double à chaque essai
+  suivant, jusqu'à cinq minutes. Un million de combinaisons devient
+  inatteignable, tandis qu'une faute de frappe ne coûte rien.
+- **Renouveler le code** (page Réglages) déconnecte tous les téléphones
+  reliés ; ils rescannent le QR pour revenir.
+
+**Limite à connaître :** l'échange se fait en **HTTP simple**. Le code
+empêche un voisin de réseau d'ouvrir l'application, il ne chiffre rien. Sur
+le Wi-Fi d'un club ou d'un hôtel, mieux vaut s'abstenir.
+
+### Hors ligne
+
+Un *service worker* met en cache l'interface et les dernières réponses
+consultées : une page déjà ouverte reste consultable si le Wi-Fi tombe, avec
+un bandeau qui le signale. Les écritures (saisie de bien-être, import) ne
+sont jamais mises en cache ni rejouées — mieux vaut une erreur franche
+qu'une donnée enregistrée deux fois.
+
+Les navigateurs réservent les *service workers* aux contextes sécurisés
+(HTTPS ou `localhost`). Sur une adresse de réseau local en HTTP,
+l'application fonctionne entièrement, mais sans ce cache hors ligne ; sur
+iOS, l'ajout à l'écran d'accueil et le plein écran fonctionnent quand même.
+
+### Le QR code
+
+Il est produit par `backend/qrcode.py`, un encodeur ISO/IEC 18004 écrit pour
+ce projet — corps de Galois GF(256), correction Reed-Solomon, versions 1 à
+10, huit masques évalués par pénalité. Comme le reste, zéro dépendance. Les
+tests le vérifient avec un décodeur indépendant écrit dans
+`tests/test_qrcode.py`, ainsi que sur le vecteur de référence de la norme.
 
 ---
 
@@ -290,23 +360,34 @@ run.py                    lanceur, vérification d'installation
 backend/
   schema.sql              27 tables
   db.py                   accès SQLite, flux compressés zlib
-  server.py               serveur HTTP, routeur à motifs, gzip, multipart
+  server.py               serveur HTTP, routeur à motifs, gzip, multipart,
+                          filtrage des accès réseau
   settings.py             configuration à trois niveaux
+  network.py              adresses locales, code d'accès, temporisation
+  qrcode.py               encodeur QR ISO/IEC 18004 (Reed-Solomon, masques)
   profiles.py             résolution du profil physiologique à une date
   science/                zones, load, power, running, pmc, hrv,
                           readiness, physiology, risk
   ingest/                 fit (décodeur), fit_writer (encodeur),
                           xmlformats (TCX/GPX), pipeline
   providers/              oauth, base, garmin, polar, coros, registry
-  api/                    89 routes
+  api/                    93 routes
   seed/                   générateur de données de démonstration
 frontend/
   index.html
-  css/                    tokens, base, layout, components, charts, views
-  js/lib/                 dom, format, api, router, store, ui
+  manifest.webmanifest    application installable (nom, icônes, raccourcis)
+  sw.js                   service worker : coquille en cache, API en réseau
+                          d'abord
+  assets/                 icônes de l'application (SVG + PNG)
+  css/                    tokens, base, layout, components, charts, views,
+                          mobile
+  js/lib/                 dom, format, api, router, store, ui, viewport,
+                          mobilenav, pwa
   js/charts/              core, plots, streams
-  js/views/               11 vues
-tests/                    107 tests
+  js/views/               12 vues
+tools/make_icons.py       rend les icônes en PNG (outil d'atelier, pas une
+                          dépendance de l'application)
+tests/                    156 tests
 ```
 
 ### Choix techniques
@@ -330,12 +411,24 @@ fausserait les constantes de temps.
 compressées en zlib (facteur ≈ 8). Une séance peut donc être entièrement
 réanalysée sans le fichier d'origine.
 
+**Le téléphone n'est pas un écran rétréci.** Sous 820 px, la barre latérale
+cède la place à une barre d'onglets en bas, les tableaux deviennent des
+fiches, le calendrier mensuel devient un agenda vertical — à 390 px, une
+case de mois n'affiche qu'un titre tronqué à trois lettres. Le même point de
+bascule est défini une seule fois, dans `js/lib/viewport.js`, et partagé
+avec le CSS pour que les deux changent au même pixel.
+
+**Hors ligne, on ne rejoue jamais une écriture.** Le service worker met en
+cache les lectures ; les POST, PATCH et DELETE passent toujours par le
+réseau. Une saisie de bien-être rejouée à la reconnexion vaut moins qu'une
+erreur franche.
+
 ---
 
 ## Tests
 
 ```bash
-python3 tests/run_all.py            # 107 tests
+python3 tests/run_all.py            # 156 tests
 python3 tests/run_all.py science    # un module
 python3 run.py --check              # vérification rapide
 ```
@@ -345,7 +438,9 @@ Les tests ne vérifient pas que le code fait ce qu'il fait : ils vérifient des
 puissance normalisée d'un effort constant égale sa moyenne ; la courbe
 record est décroissante ; le modèle de puissance critique retrouve les
 paramètres qui ont servi à générer ses points ; le VDOT reproduit les tables
-publiées de Daniels ; le fichier FIT encodé se relit à l'identique).
+publiées de Daniels ; le fichier FIT encodé se relit à l'identique ; le QR
+code produit se relit avec un décodeur écrit séparément ; une requête venue
+du réseau sans code d'accès est refusée, avec le code acceptée).
 
 ---
 

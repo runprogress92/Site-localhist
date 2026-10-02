@@ -46,8 +46,9 @@ def update_config(request):
         weights = payload["readiness_weights"]
         total = sum(weights.values())
         if abs(total - 1.0) > 0.01:
-            raise bad_request(f"La somme des pondérations doit valoir 1,00 "
-                              f"(reçu {total:.2f}).")
+            got = f"{total:.2f}".replace(".", ",")
+            raise bad_request("La somme des pondérations doit valoir 1,00 "
+                              f"(reçu {got}).")
         db.set_setting("readiness_weights", weights)
         updated["readiness_weights"] = weights
     return {"updated": updated}

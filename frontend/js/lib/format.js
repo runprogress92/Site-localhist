@@ -25,6 +25,12 @@ export function pct(value, decimals = 0, fallback = '—') {
 }
 
 /** Durée en secondes → « 1 h 24 » ou « 42 min » ou « 3:42 ». */
+// Espace insécable : « 2 h 14 » ne doit jamais se couper en fin de ligne,
+// ni « 45 min » laisser son unité seule sur la ligne suivante. La typographie
+// française demande une espace entre le nombre et l'unité ; l'insécable
+// garde les deux ensemble.
+const NB = '\u00a0';
+
 export function duration(seconds, style = 'auto') {
   if (seconds === null || seconds === undefined || Number.isNaN(seconds)) return '—';
   const total = Math.round(Math.abs(seconds));
@@ -35,33 +41,36 @@ export function duration(seconds, style = 'auto') {
     return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
                  : `${m}:${String(s).padStart(2, '0')}`;
   }
-  if (style === 'hm') return h > 0 ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`;
+  if (style === 'hm') return h > 0 ? `${h}${NB}h${NB}${String(m).padStart(2, '0')}`
+                                   : `${m}${NB}min`;
   if (style === 'long') {
-    if (total < 60) return `${s} s`;
+    if (total < 60) return `${s}${NB}s`;
     const parts = [];
-    if (h) parts.push(`${h} h`);
-    if (m || !h) parts.push(`${m} min`);
+    if (h) parts.push(`${h}${NB}h`);
+    if (m || !h) parts.push(`${m}${NB}min`);
     return parts.join(' ');
   }
-  if (h > 0) return `${h} h ${String(m).padStart(2, '0')}`;
-  if (m > 0) return `${m} min ${s > 0 && m < 10 ? String(s).padStart(2, '0') + ' s' : ''}`.trim();
-  return `${s} s`;
+  if (h > 0) return `${h}${NB}h${NB}${String(m).padStart(2, '0')}`;
+  if (m > 0) {
+    return `${m}${NB}min ${s > 0 && m < 10 ? String(s).padStart(2, '0') + NB + 's' : ''}`.trim();
+  }
+  return `${s}${NB}s`;
 }
 
 /** Distance en mètres → km ou m selon l'échelle. */
 export function distance(meters, decimals = null) {
   if (meters === null || meters === undefined || Number.isNaN(meters)) return '—';
-  if (meters < 1000) return `${num(meters, 0)} m`;
+  if (meters < 1000) return `${num(meters, 0)}${NB}m`;
   const km = meters / 1000;
   const d = decimals !== null ? decimals : (km >= 100 ? 0 : 1);
-  return `${num(km, d)} km`;
+  return `${num(km, d)}${NB}km`;
 }
 
 /** Allure en secondes par kilomètre → « 4:12 /km ». */
 export function pace(secondsPerKm, unit = '/km') {
   if (!secondsPerKm || secondsPerKm <= 0 || secondsPerKm > 3600) return '—';
   const total = Math.round(secondsPerKm);
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')} ${unit}`;
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}${NB}${unit}`;
 }
 
 export function speedToPace(metersPerSecond) {
@@ -72,14 +81,14 @@ export function speedToPace(metersPerSecond) {
 /** Vitesse en m/s → km/h. */
 export function speed(metersPerSecond, decimals = 1) {
   if (!metersPerSecond) return '—';
-  return `${num(metersPerSecond * 3.6, decimals)} km/h`;
+  return `${num(metersPerSecond * 3.6, decimals)}${NB}km/h`;
 }
 
 /** Allure de natation : secondes aux 100 m. */
 export function swimPace(metersPerSecond) {
   if (!metersPerSecond || metersPerSecond <= 0) return '—';
   const total = Math.round(100 / metersPerSecond);
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')} /100 m`;
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}${NB}/100${NB}m`;
 }
 
 export function paceForSport(sport, metersPerSecond) {

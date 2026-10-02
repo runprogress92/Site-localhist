@@ -190,6 +190,22 @@ Réponse : `{"date": "…", "readiness": {"score": 68.4, "flag": "ambre",
 
 ---
 
+## Accès depuis le réseau local
+
+| Méthode | Route | Description |
+|---|---|---|
+| `GET` | `/network` | Adresses de la machine, port servi, URL pour le téléphone, code d'accès, QR en SVG, mises en garde. |
+| `POST` | `/network` | `{"enabled": true\|false}` — ouvre ou referme l'accès réseau. |
+| `POST` | `/network/code` | Tire un nouveau code ; les appareils reliés devront rescanner. |
+| `GET` | `/network/qr.svg` | QR code en image. Paramètres : `url`, `module`, `dark`, `light`. |
+
+`GET /network` renvoie `requires_restart: true` quand l'accès est autorisé
+mais que le serveur écoute encore sur `127.0.0.1` : il faut le relancer avec
+`--lan` pour que le téléphone puisse l'atteindre. Le champ `code` reste
+`null` tant que l'accès est fermé.
+
+---
+
 ## Notes d'implémentation
 
 **Le cache du navigateur** est de 30 secondes sur les `GET`, vidé à chaque
@@ -203,6 +219,24 @@ sous-échantillonnés à la demande par moyenne de bloc, ce qui préserve la
 forme du signal — contrairement à un simple prélèvement d'un point sur N,
 qui perdrait les pointes.
 
-**Aucune authentification** : l'application est conçue pour tourner sur
-`127.0.0.1`. Si vous l'exposez sur un réseau, placez-la derrière un reverse
-proxy assurant l'authentification.
+**L'authentification est volontairement minimale.** Tant que le serveur
+écoute sur `127.0.0.1`, aucune n'est demandée : l'application est conçue pour
+tourner sur la machine de l'entraîneur. Dès que l'accès réseau est activé
+(`POST /network` ou `run.py --lan`), toute requête n'émanant pas de la boucle
+locale doit présenter le code à six chiffres, en paramètre `?c=` ou dans le
+cookie `athlytics_access` :
+
+- une requête `/api/…` sans code reçoit `401` avec
+  `{"detail": {"needs_code": true}}` ;
+- une requête de page sans code reçoit la page de saisie, autonome (ni CSS ni
+  JavaScript du site, puisqu'elle précède l'autorisation) ;
+- un `?c=` correct pose le cookie (`HttpOnly`, `SameSite=Lax`) puis redirige
+  vers la même adresse sans le paramètre, pour que le code ne reste pas dans
+  l'historique du téléphone ;
+- après cinq échecs, une temporisation s'installe par adresse IP et double à
+  chaque essai (plafond : cinq minutes), signalée par un `429` portant
+  `retry_after`.
+
+C'est une barrière d'usage, pas un chiffrement : les échanges restent en
+HTTP simple. Pour une exposition réelle, placez l'application derrière un
+reverse proxy en HTTPS.
