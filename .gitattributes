@@ -1,0 +1,10 @@
+# Les lanceurs Windows doivent garder des fins de ligne CRLF : cmd.exe
+# n'interprète pas un fichier en LF.
+*.bat text eol=crlf
+*.command text eol=lf
+*.sh text eol=lf
+
+# Fichiers binaires : jamais de conversion.
+*.fit binary
+*.sqlite binary
+*.png binary

@@ -4,14 +4,18 @@ import { el, icon, mount } from '../lib/dom.js';
 import * as F from '../lib/format.js';
 import { navigate } from '../lib/router.js';
 import { setTheme, store } from '../lib/store.js';
+import { phoneCard } from './phone.js';
 import {
   card, confirmDialog, dataTable, field, input, modal, notifyError, pageTitle,
   segmented, select, setTopbar, statTile, textarea, toast,
 } from '../lib/ui.js';
 
 export async function render(root, context) {
-  const [config, stats, health, teams] = await Promise.all([
+  const [config, stats, health, teams, network] = await Promise.all([
     api.config(), api.stats(), api.health(), api.teams(),
+    // L'accès réseau peut échouer sur une installation partielle : la page
+    // des réglages doit rester consultable, la carte disparaît simplement.
+    api.network().catch(() => null),
   ]);
   if (context.token.stale) return;
   const thresholds = { ...config.config.thresholds };
@@ -27,7 +31,7 @@ export async function render(root, context) {
           ? `depuis le ${F.date(stats.volume.first_date, 'medium')}` : null, tone: 'plain' }),
       statTile('Volume enregistré', F.duration(stats.volume.duration_s, 'hm'), {
         sub: `${F.distance(stats.volume.distance_m, 0)} · `
-           + `${F.num(stats.volume.elevation_m, 0)} m D+`, tone: 'plain' }),
+           + `${F.num(stats.volume.elevation_m, 0)}\u00a0m D+`, tone: 'plain' }),
       statTile('Taille de la base', `${F.num(stats.database.size_mb, 1)} Mo`, {
         sub: `${F.num(stats.streams.samples)} échantillons compressés`, tone: 'plain' }),
     ]),
@@ -150,6 +154,8 @@ export async function render(root, context) {
         ]),
       ])),
     ]),
+
+    network ? phoneCard(network, () => render(root, context)) : null,
 
     card('Équipes', el('div', [
       teams.teams.length ? dataTable({

@@ -18,7 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
 
-from . import db
+from . import db, network
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC_DIR = ROOT / "frontend"
@@ -26,6 +26,8 @@ STATIC_DIR = ROOT / "frontend"
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
 mimetypes.add_type("image/svg+xml", ".svg")
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+mimetypes.add_type("image/png", ".png")
 
 
 class HttpProblem(Exception):
@@ -235,6 +237,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         for key, value in (extra_headers or {}).items():
             self.send_header(key, value)
+        pending = getattr(self, "_pending_cookie", None)
+        if pending:
+            self.send_header("Set-Cookie", pending)
+            self._pending_cookie = None
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(body)
@@ -285,6 +291,8 @@ class Handler(BaseHTTPRequestHandler):
         path = urllib.parse.unquote(parsed.path)
         query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
         try:
+            if not self._authorised(path, query):
+                return
             if path.startswith("/api/"):
                 handler, params = ROUTER.match(method, path)
                 if handler is None:
@@ -317,6 +325,70 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 pass
 
+    # ------------------------------------------------------- contrôle d'accès
+    def _authorised(self, path: str, query: dict) -> bool:
+        """Filtre les requêtes venant du réseau local.
+
+        Rien n'est demandé tant que l'accès réseau n'est pas activé, ni aux
+        requêtes issues de la machine elle-même : l'entraîneur sur son poste
+        ne doit jamais avoir à saisir quoi que ce soit.
+        """
+        if not network.lan_enabled():
+            return True
+        client = self.client_address[0] if self.client_address else "127.0.0.1"
+        if network.is_loopback(client):
+            return True
+
+        code = (query.get("c") or [None])[0]
+        wait = network.retry_after(client)
+        if wait > 0:
+            # Attente en cours : on ne regarde même pas le code, sinon la
+            # temporisation ne coûterait rien à qui les essaie tous.
+            if path.startswith("/api/"):
+                self.send_error_json(429, "Trop d'essais. Patientez.",
+                                     {"retry_after": round(wait)})
+            else:
+                self._send(429, _access_page(wait=wait).encode("utf-8"),
+                           "text/html; charset=utf-8")
+            return False
+
+        if network.check_access(client, self.headers.get("Cookie", ""), code):
+            network.clear_failures(client)
+            if code:
+                # Le code devient un cookie : il n'est demandé qu'une fois par
+                # appareil. HttpOnly parce qu'aucun script du site ne le lit —
+                # autant qu'il reste hors de portée du JavaScript.
+                self._pending_cookie = (
+                    f"{network.COOKIE_NAME}={code}; Path=/; Max-Age=31536000; "
+                    "SameSite=Lax; HttpOnly")
+                if not path.startswith("/api/"):
+                    # …et on renvoie vers l'adresse sans le paramètre, pour
+                    # que le code ne reste pas inscrit dans la barre d'adresse
+                    # ni dans l'historique du téléphone. Le fragment (#/route)
+                    # n'est pas transmis au serveur : le navigateur le
+                    # conserve de lui-même à travers la redirection.
+                    clean = {k: v for k, v in query.items() if k != "c"}
+                    target = path or "/"
+                    if clean:
+                        target += "?" + urllib.parse.urlencode(clean, doseq=True)
+                    self._send(302, b"", "text/plain",
+                               extra_headers={"Location": target})
+                    return False
+            return True
+
+        # Un essai manqué ne compte que si un code a réellement été présenté :
+        # la page de saisie elle-même ne doit pas consommer de tentative.
+        if code is not None:
+            network.note_failure(client)
+
+        if path.startswith("/api/"):
+            self.send_error_json(401, "Code d'accès requis.",
+                                 {"needs_code": True})
+        else:
+            self._send(401, _access_page(wrong=code is not None).encode("utf-8"),
+                       "text/html; charset=utf-8")
+        return False
+
     # --------------------------------------------------------------- statique
     def _serve_static(self, path: str) -> None:
         if path in ("/", ""):
@@ -338,11 +410,73 @@ class Handler(BaseHTTPRequestHandler):
         content_type, _ = mimetypes.guess_type(str(candidate))
         content_type = content_type or "application/octet-stream"
         if content_type.startswith("text/") or content_type in (
-                "application/javascript", "application/json", "image/svg+xml"):
+                "application/javascript", "application/json", "image/svg+xml",
+                "application/manifest+json"):
             content_type += "; charset=utf-8"
         body = candidate.read_bytes()
-        cacheable = candidate.suffix in (".css", ".js", ".svg", ".woff2", ".png")
-        self._send(200, body, content_type, cacheable=cacheable)
+        extra = {}
+        # Le service worker doit être relu à chaque chargement, sinon une
+        # version corrigée resterait piégée derrière le cache qu'elle gère.
+        if candidate.name == "sw.js":
+            cacheable = False
+            extra["Service-Worker-Allowed"] = "/"
+        else:
+            cacheable = candidate.suffix in (".css", ".js", ".svg", ".woff2",
+                                             ".png", ".webmanifest")
+        self._send(200, body, content_type, extra_headers=extra, cacheable=cacheable)
+
+
+def _access_page(wrong: bool = False, wait: float = 0.0) -> str:
+    """Page minimale de saisie du code d'accès.
+
+    Volontairement autonome — ni CSS ni JavaScript du site — puisqu'elle
+    doit s'afficher avant toute autorisation.
+    """
+    if wait > 0:
+        delay = round(wait)
+        message = (f"<p class=\"warn\">Trop d'essais. Réessayez dans "
+                   f"{delay} seconde{'s' if delay > 1 else ''}.</p>")
+    elif wrong:
+        message = '<p class="warn">Ce code ne correspond pas. Vérifiez-le ' \
+                  'sur l\'ordinateur et recommencez.</p>'
+    else:
+        message = ""
+    return """<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Athlytics — code d'accès</title><style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+ background:#0b0e13;color:#e6eaf0;
+ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+.box{width:100%;max-width:340px;text-align:center}
+.mark{width:56px;height:56px;border-radius:14px;margin:0 auto 20px;
+ background:linear-gradient(135deg,#5b9bff,#7b56c9);display:grid;place-items:center;
+ font-size:26px;font-weight:700;color:#fff}
+h1{font-size:19px;margin:0 0 8px}
+p{color:#8d9aab;font-size:14px;line-height:1.6;margin:0 0 24px}
+input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:10px;
+ border-radius:12px;border:1px solid #2f3a4a;background:#12161e;color:#e6eaf0;
+ font-variant-numeric:tabular-nums}
+input:focus{outline:none;border-color:#4f8ff7;box-shadow:0 0 0 3px rgba(79,143,247,.18)}
+button{width:100%;margin-top:14px;padding:15px;font-size:16px;font-weight:600;
+ border:none;border-radius:12px;background:#4f8ff7;color:#fff}
+small{display:block;margin-top:22px;color:#5d6878;font-size:12px;line-height:1.6}
+.warn{color:#f2a33c;font-size:13px;margin:0 0 16px;font-weight:600}
+</style></head><body><div class="box">
+<div class="mark">A</div>
+<h1>Code d'accès</h1>
+<p>Saisissez le code à six chiffres affiché sur l'ordinateur,
+dans Réglages &rsaquo; Connecter mon téléphone.</p>
+__MESSAGE__
+<form method="get" action="/">
+<input name="c" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+ autocomplete="one-time-code" placeholder="000000" autofocus>
+<button type="submit">Ouvrir Athlytics</button>
+</form>
+<small>Ce code n'est demandé qu'une fois par appareil.
+Il protège l'accès depuis votre réseau local ; l'échange n'est pas chiffré,
+évitez les réseaux publics.</small>
+</div></body></html>""".replace("__MESSAGE__", message)
 
 
 class Response:
@@ -369,4 +503,7 @@ class Server(ThreadingHTTPServer):
 def serve(host: str = "127.0.0.1", port: int = 8420, verbose: bool = False) -> Server:
     httpd = Server((host, port), Handler)
     httpd.verbose = verbose
+    # server_address, et non « port » : avec port=0 le système en choisit un,
+    # et c'est celui-là que l'interface doit afficher au téléphone.
+    network.set_bound(host, httpd.server_address[1])
     return httpd

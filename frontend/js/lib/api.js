@@ -181,6 +181,10 @@ export const api = {
   syncLog:       (limit) => get('/api/devices/sync-log', { limit }, { fresh: true }),
   hardware:      () => get('/api/devices/hardware'),
 
+  network:       () => get('/api/network', null, { fresh: true }),
+  setNetwork:    (enabled) => post('/api/network', { enabled }),
+  renewCode:     () => post('/api/network/code', {}),
+
   teams:         () => get('/api/teams'),
   createTeam:    (body) => post('/api/teams', body),
   rebuild:       (body) => post('/api/admin/rebuild', body || {}),
