@@ -8,8 +8,12 @@
 import { api } from './lib/api.js';
 import { $, clear, el, icon, mount } from './lib/dom.js';
 import * as F from './lib/format.js';
-import { navigate, route, setNotFound, start, currentRoute } from './lib/router.js';
+import { navigate, resolve as resolveCurrent, route, setNotFound, start,
+         currentRoute } from './lib/router.js';
 import { setState, setTheme, store, subscribe, toggleTheme } from './lib/store.js';
+import { onLayoutChange, viewport } from './lib/viewport.js';
+import { removeBottomNav, renderBottomNav } from './lib/mobilenav.js';
+import { initPwa } from './lib/pwa.js';
 import { emptyState, loading, notifyError, setTopbar, toast } from './lib/ui.js';
 
 const content = () => document.getElementById('content');
@@ -120,9 +124,27 @@ function view(loader) {
     if (context.token.stale) return;
     await module.render(content(), context);
     if (context.token.stale) return;
-    renderSidebar();
+    renderNav();
     content().scrollTop = 0;
   };
+}
+
+/** Dessine la navigation adaptée au format courant. */
+export function renderNav() {
+  if (viewport.isMobile) {
+    removeSidebarContent();
+    renderBottomNav();
+  } else {
+    removeBottomNav();
+    renderSidebar();
+  }
+}
+
+function removeSidebarContent() {
+  // La barre latérale est masquée en CSS ; on vide aussi son contenu pour
+  // qu'elle ne garde pas en mémoire des gestionnaires inutiles.
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar && sidebar.childElementCount) clear(sidebar);
 }
 
 route('/',            view(() => import('./views/dashboard.js')));
@@ -162,8 +184,12 @@ async function boot() {
       'alert'));
     return;
   }
-  renderSidebar();
-  subscribe(() => { /* la barre latérale est redessinée explicitement */ });
+  initPwa();
+  renderNav();
+  // Rotation du téléphone ou redimensionnement de la fenêtre : on repasse
+  // d'une navigation à l'autre et on redessine la vue courante.
+  onLayoutChange(() => { renderNav(); resolveCurrent(); });
+  subscribe(() => { /* la navigation est redessinée explicitement */ });
   start();
 
   // raccourcis clavier
@@ -190,7 +216,7 @@ export async function refreshRoster() {
   try {
     const roster = await api.athletes();
     setState({ athletes: roster.athletes });
-    renderSidebar();
+    renderNav();
   } catch (error) { notifyError(error); }
 }
 

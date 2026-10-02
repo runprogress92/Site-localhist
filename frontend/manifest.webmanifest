@@ -1,0 +1,41 @@
+{
+  "name": "Athlytics — suivi d'athlètes",
+  "short_name": "Athlytics",
+  "description": "Suivi scientifique d'athlètes : charge d'entraînement, forme, variabilité cardiaque et disponibilité. Fonctionne entièrement sur votre machine.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#0b0e13",
+  "theme_color": "#0b0e13",
+  "categories": ["health", "fitness", "sports", "productivity"],
+  "icons": [
+    { "src": "/assets/icons/icon-192.png", "sizes": "192x192",
+      "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/icon-512.png", "sizes": "512x512",
+      "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/icon-maskable-192.png", "sizes": "192x192",
+      "type": "image/png", "purpose": "maskable" },
+    { "src": "/assets/icons/icon-maskable-512.png", "sizes": "512x512",
+      "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Relevés du jour",
+      "short_name": "Bien-être",
+      "description": "Saisir les questionnaires du matin",
+      "url": "/#/bien-etre",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dernières séances",
+      "short_name": "Séances",
+      "description": "Parcourir le journal d'entraînement",
+      "url": "/#/seances",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

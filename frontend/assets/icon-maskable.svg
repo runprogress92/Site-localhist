@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Variante « maskable » pour Android.
+
+  Le système recadre librement l'icône (cercle, carré arrondi, goutte) :
+  tout ce qui dépasse de la « zone sûre » centrale, soit 80 % du cadre,
+  peut être rogné. Le motif est donc réduit et recentré, et le fond
+  s'étend jusqu'aux bords.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#5b9bff"/>
+      <stop offset="52%"  stop-color="#4f8ff7"/>
+      <stop offset="100%" stop-color="#7b56c9"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g transform="translate(256,256) scale(0.62) translate(-256,-256)">
+    <!-- Courbe de forme : chute puis remontée franche -->
+  <path d="M96 318 L164 272 L214 330 L268 196 L322 250 L416 142"
+        fill="none" stroke="#ffffff" stroke-width="30"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Point de mesure du jour -->
+  <circle cx="416" cy="142" r="30" fill="#ffffff"/>
+  <circle cx="416" cy="142" r="13" fill="#4f8ff7"/>
+
+  <!-- Ligne de base, discrète -->
+  <path d="M96 392 L416 392" stroke="#ffffff" stroke-opacity="0.34"
+        stroke-width="14" stroke-linecap="round"/>
+  </g>
+</svg>

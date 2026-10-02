@@ -2,17 +2,33 @@
 <html lang="fr" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
   <meta name="color-scheme" content="dark light">
   <meta name="description" content="Athlytics — plateforme locale de suivi scientifique d'athlètes, connectée à Garmin, Polar et COROS.">
   <title>Athlytics — suivi d'athlètes</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f8ff7'/%3E%3Cpath d='M6 20l5-9 4 6 3-4 8 11' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32.png">
+  <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+
+  <!-- Installation sur l'écran d'accueil -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f6f9" media="(prefers-color-scheme: light)">
+  <meta name="application-name" content="Athlytics">
+
+  <!-- iOS n'implémente pas le manifeste : ces balises jouent le même rôle -->
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Athlytics">
+  <meta name="format-detection" content="telephone=no">
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/layout.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/charts.css">
   <link rel="stylesheet" href="/css/views.css">
+  <link rel="stylesheet" href="/css/mobile.css">
 </head>
 <body>
   <div id="app">

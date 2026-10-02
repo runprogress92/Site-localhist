@@ -1,0 +1,473 @@
+/* =====================================================================
+   Adaptation au téléphone (≤ 820 px)
+
+   Le poste de travail d'un entraîneur et son téléphone ne demandent pas la
+   même interface. Sur petit écran on ne réduit pas : on réorganise.
+   Les tableaux denses deviennent des cartes, le menu latéral devient une
+   barre d'onglets sous le pouce, et les cibles tactiles passent toutes
+   au-dessus de 44 px — le minimum recommandé par Apple et Google.
+   ===================================================================== */
+
+/* ---------------------------------------------------- zones sûres iPhone */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --nav-h: 58px;
+}
+
+@media (max-width: 820px) {
+
+  /* ------------------------------------------------------------ socle */
+  html, body { overscroll-behavior-y: none; }
+  body {
+    /* évite le zoom involontaire au double-tap sans bloquer le pincement */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #app { height: calc(var(--vh, 1vh) * 100); }
+
+  /* Le menu latéral disparaît complètement : la barre basse le remplace. */
+  .sidebar { display: none !important; }
+
+  .main { padding-bottom: calc(var(--nav-h) + var(--safe-bottom)); }
+
+  /* --------------------------------------------------------- en-tête */
+  .topbar {
+    height: auto; min-height: 52px;
+    padding: calc(var(--safe-top) + 8px) var(--sp-4) 8px;
+    gap: var(--sp-2);
+    position: sticky; top: 0; z-index: 20;
+    /* léger flou : le contenu qui défile dessous reste deviné sans gêner */
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: saturate(160%) blur(12px);
+    -webkit-backdrop-filter: saturate(160%) blur(12px);
+  }
+  .topbar h1 {
+    font-size: var(--fs-lg); line-height: 1.2;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 100%;
+  }
+  /* Le sous-titre descriptif n'a pas sa place sur 390 px : il repoussait
+     le contenu de trois lignes pour une information secondaire. */
+  .topbar .breadcrumb { display: none; }
+  .topbar .col { min-width: 0; flex: 1; }
+
+  /* Les actions deviennent une rangée défilante sous le titre. */
+  .topbar-actions {
+    display: flex; gap: var(--sp-2); overflow-x: auto;
+    scrollbar-width: none; -ms-overflow-style: none;
+    padding-bottom: 2px; width: 100%;
+  }
+  .topbar-actions::-webkit-scrollbar { display: none; }
+  .topbar { flex-wrap: wrap; }
+  .topbar .spacer { display: none; }
+
+  /* ------------------------------------------------------- contenu */
+  .content { padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  .section { margin-bottom: var(--sp-5); }
+  .section-head { flex-wrap: wrap; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+
+  /* --------------------------------------------------------- grilles */
+  /* « minmax(0, 1fr) » et non « 1fr » : une colonne « 1fr » ne descend pas
+     sous la largeur minimale de son contenu, et un tableau ou une matrice
+     large élargissait alors toute la carte au-delà de l'écran. */
+  .grid-2, .grid-3, .grid-4, .grid-6, .grid-main, .grid-auto, .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .card, .card-head, .card-body { min-width: 0; }
+
+  /* Un titre à gauche et deux boutons à droite ne tiennent pas sur 390 px :
+     on laisse la ligne passer à la ligne plutôt que déborder. */
+  .between, .row-tight { flex-wrap: wrap; }
+  /* Les tuiles de chiffres restent à deux par ligne : quatre écrans de
+     défilement pour quatre nombres n'aide personne. */
+  .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+  .span-2, .span-3, .span-full { grid-column: 1 / -1; }
+
+  .stat-tile { padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4); gap: 2px; }
+  .stat-tile .metric-label { font-size: 9.5px; letter-spacing: 0.06em; }
+  .stat-tile .metric-value { font-size: var(--fs-xl); }
+  .stat-tile .metric-sub { font-size: 11px; line-height: 1.35; }
+
+  .kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3); padding: var(--sp-3) 0;
+  }
+  .kpi-value { font-size: var(--fs-lg); }
+
+  /* ---------------------------------------------------------- cartes */
+  .card { padding: var(--sp-4); border-radius: var(--r-md); }
+  .card-head { margin-bottom: var(--sp-3); }
+  .card-title { font-size: var(--fs-base); }
+  .card-sub { font-size: 11.5px; line-height: 1.5; }
+
+  /* ---------------------------------------------------------- onglets */
+  .tabs {
+    overflow-x: auto; scrollbar-width: none; gap: 0;
+    margin: 0 calc(var(--sp-4) * -1) var(--sp-4);
+    padding: 0 var(--sp-4);
+    scroll-snap-type: x proximity;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: var(--sp-3) var(--sp-3); font-size: var(--fs-sm);
+         scroll-snap-align: start; }
+
+  /* ------------------------------------------------- tableaux → cartes */
+  /* Un tableau de dix colonnes sur 390 px force un défilement horizontal
+     illisible. Les vues le remplacent par des cartes (.row-cards) ; ce qui
+     reste de tableau est au moins rendu confortable. */
+  table.data th { font-size: 9.5px; padding: var(--sp-2); }
+  table.data td { padding: var(--sp-3) var(--sp-2); font-size: var(--fs-sm); }
+  .table-wrap { margin: 0 calc(var(--sp-4) * -1); padding: 0 var(--sp-4); }
+
+  /* ------------------------------------------------------ formulaires */
+  /* 16 px minimum : en dessous, iOS zoome automatiquement sur le champ
+     actif et ne dézoome jamais. */
+  .input, .select, .textarea { font-size: 16px; padding: 10px 12px; }
+  .field-label { font-size: var(--fs-base); }
+  .btn { min-height: 42px; padding: 9px 16px; }
+  .btn.sm { min-height: 36px; padding: 7px 12px; }
+  .btn.icon { min-width: 42px; min-height: 42px; }
+  .scale-input { gap: 5px; }
+  .scale-input button { min-height: 46px; font-size: var(--fs-base); }
+
+  /* --------------------------------------------------------- fenêtres */
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal {
+    width: 100%; max-height: 92vh; max-height: calc(var(--vh, 1vh) * 92);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    animation: sheet-up 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .modal.wide { width: 100%; }
+  @keyframes sheet-up { from { transform: translateY(100%); } }
+  .modal-head { padding: var(--sp-4) var(--sp-5); }
+  .modal-body { padding: var(--sp-4) var(--sp-5); }
+  .modal-foot {
+    padding: var(--sp-3) var(--sp-5) calc(var(--sp-4) + var(--safe-bottom));
+    gap: var(--sp-2);
+  }
+  .modal-foot .btn { flex: 1; justify-content: center; }
+  .modal .grid-2, .modal .grid-3, .modal .grid-4 { grid-template-columns: 1fr; }
+
+  /* ------------------------------------------------------ graphiques */
+  .chart-legend { font-size: 11px; gap: var(--sp-3); }
+  .chart-tooltip {
+    /* ancrée en bas de l'écran : le doigt masque toujours le point touché */
+    position: fixed; left: var(--sp-3) !important; right: var(--sp-3);
+    bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--sp-3)) !important;
+    top: auto !important; max-width: none; width: auto;
+    box-shadow: var(--shadow-lg);
+  }
+  .axis-label { font-size: 9.5px; }
+  .zone-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* ------------------------------------------------------ calendrier */
+  .cal-day { min-height: 62px; padding: 3px; }
+  .cal-daynum { font-size: 10px; }
+  .cal-item { font-size: 9px; padding: 1px 3px; }
+  .cal-grid { gap: 3px; }
+  .week-strip { grid-template-columns: 1fr; gap: var(--sp-2); }
+  .week-day { min-height: auto; flex-direction: row; align-items: center;
+              flex-wrap: wrap; }
+  .week-dayname { min-width: 64px; }
+
+  /* ------------------------------------------------------ bien-être */
+  .wellness-grid { grid-template-columns: 1fr; }
+  .driver-row { grid-template-columns: 96px 1fr 38px; font-size: 11.5px; }
+  .matrix-name { width: 92px; font-size: 11px; }
+
+  /* --------------------------------------------------- accueil, divers */
+  .welcome { padding: var(--sp-5) 0; }
+  .welcome-head h1 { font-size: var(--fs-2xl); }
+  .welcome-cards { grid-template-columns: 1fr; }
+  .athlete-header { flex-wrap: wrap; gap: var(--sp-3); padding: var(--sp-4) 0; }
+  .avatar.xl { width: 52px; height: 52px; font-size: var(--fs-lg); }
+  .athlete-name { font-size: var(--fs-lg); }
+  .activity-hero { grid-template-columns: 1fr; }
+  .activity-metrics { grid-template-columns: repeat(2, minmax(0, 1fr));
+                      gap: var(--sp-3); }
+  .toasts { left: var(--sp-3); right: var(--sp-3);
+            bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--sp-3)); }
+  .toast { min-width: 0; max-width: none; }
+  .provider-head { flex-wrap: wrap; }
+  .url-box { font-size: 10.5px; }
+  .search-box { max-width: none; }
+}
+
+/* ============================================ barre d'onglets inférieure */
+.bottom-nav { display: none; }
+
+@media (max-width: 820px) {
+  .bottom-nav {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    height: calc(var(--nav-h) + var(--safe-bottom));
+    padding-bottom: var(--safe-bottom);
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    backdrop-filter: saturate(170%) blur(14px);
+    -webkit-backdrop-filter: saturate(170%) blur(14px);
+    border-top: 1px solid var(--border);
+  }
+  .tab-item {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 3px; color: var(--text-faint);
+    font-size: 10px; font-weight: 550; letter-spacing: -0.01em;
+    transition: color 120ms; -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  .tab-item .tab-icon { width: 21px; height: 21px; stroke-width: 1.7; }
+  .tab-item.active { color: var(--accent); }
+  .tab-item.active .tab-icon { stroke-width: 2.1; }
+  .tab-item.active::before {
+    content: ""; position: absolute; top: 0; left: 50%;
+    transform: translateX(-50%); width: 22px; height: 2.5px;
+    border-radius: 0 0 3px 3px; background: var(--accent);
+  }
+  .tab-item:active { opacity: 0.6; }
+  .tab-label { white-space: nowrap; }
+}
+
+/* -------------------------------------------------- feuille « Plus » */
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(4, 7, 11, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex; align-items: flex-end;
+  animation: fade 150ms ease-out;
+}
+.sheet-backdrop.closing { animation: fade 150ms ease-out reverse; }
+.sheet {
+  width: 100%; max-height: 82vh; max-height: calc(var(--vh, 1vh) * 82);
+  overflow-y: auto;
+  background: var(--surface); border-top: 1px solid var(--border-strong);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: var(--sp-2) var(--sp-4) calc(var(--sp-5) + var(--safe-bottom));
+  box-shadow: var(--shadow-lg);
+  animation: sheet-up 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 160ms ease-out;
+}
+.sheet-backdrop.closing .sheet { transform: translateY(100%); }
+.sheet-grip {
+  width: 38px; height: 4px; border-radius: 2px; background: var(--border-strong);
+  margin: var(--sp-2) auto var(--sp-4);
+}
+.sheet-section + .sheet-section {
+  margin-top: var(--sp-4); padding-top: var(--sp-4);
+  border-top: 1px solid var(--border-subtle);
+}
+.sheet-title {
+  font-size: 10px; font-weight: 650; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--text-faint);
+  margin-bottom: var(--sp-3);
+}
+.sheet-athletes {
+  display: flex; gap: var(--sp-3); overflow-x: auto; padding-bottom: var(--sp-2);
+  scrollbar-width: none; margin: 0 calc(var(--sp-4) * -1); padding-inline: var(--sp-4);
+}
+.sheet-athletes::-webkit-scrollbar { display: none; }
+.sheet-athlete {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  min-width: 62px; position: relative; color: var(--text-muted);
+  font-size: 11px;
+}
+.sheet-athlete-name { white-space: nowrap; }
+.sheet-athlete-dot {
+  position: absolute; top: 0; right: 10px;
+  width: 9px; height: 9px; border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+.sheet-item {
+  display: flex; align-items: center; gap: var(--sp-3); width: 100%;
+  padding: var(--sp-3) var(--sp-2); border-radius: var(--r-md);
+  text-align: left; color: var(--text); min-height: 52px;
+}
+.sheet-item:active { background: var(--surface-hover); }
+.sheet-item.active { background: var(--accent-dim); color: var(--accent); }
+.sheet-item-icon {
+  width: 34px; height: 34px; border-radius: var(--r-md); flex-shrink: 0;
+  background: var(--surface-3); display: grid; place-items: center;
+}
+.sheet-item.active .sheet-item-icon { background: transparent; }
+.sheet-item-icon svg { width: 17px; height: 17px; }
+.sheet-item-label { display: block; font-weight: 570; font-size: var(--fs-base); }
+.sheet-item-hint {
+  display: block; font-size: 11px; color: var(--text-faint); margin-top: 1px;
+  line-height: 1.4;
+}
+
+/* ================================================ listes en cartes */
+/* Remplacement des tableaux denses sur petit écran. */
+.row-cards { display: flex; flex-direction: column; gap: var(--sp-2); }
+.row-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4);
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  border-left-width: 3px;
+}
+.row-card:active { background: var(--surface-hover); }
+.row-card-head { display: flex; align-items: center; gap: var(--sp-3); }
+.row-card-title { font-weight: 580; font-size: var(--fs-base); min-width: 0; }
+.row-card-sub { font-size: 11px; color: var(--text-faint); }
+.row-card-metrics {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(66px, 1fr));
+  gap: var(--sp-2) var(--sp-3);
+}
+.row-card-metric { display: flex; flex-direction: column; gap: 1px; }
+.row-card-metric dt {
+  font-size: 9.5px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.row-card-metric dd {
+  margin: 0; font-size: var(--fs-md); font-weight: 560; line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================ bandeau d'installation */
+.install-banner {
+  position: fixed; left: var(--sp-3); right: var(--sp-3);
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--sp-3));
+  z-index: 60; background: var(--surface-3);
+  border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4); box-shadow: var(--shadow-lg);
+  display: flex; align-items: center; gap: var(--sp-3);
+  animation: sheet-up 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.install-banner-text { flex: 1; min-width: 0; font-size: var(--fs-sm); }
+.install-banner-text strong { display: block; font-size: var(--fs-base); }
+
+/* ============================= retrait du survol sur appareil tactile */
+/* Sans cela, le premier appui applique l'état de survol et le garde :
+   la ligne touchée reste surlignée jusqu'au prochain appui ailleurs. */
+@media (hover: none) {
+  .card.hover:hover { border-color: var(--border); }
+  table.data tbody tr:hover { background: transparent; }
+  .list-row:hover { background: transparent; }
+  .btn:hover { background: var(--surface-3); border-color: var(--border); }
+  .btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+  .btn.ghost:hover { background: transparent; }
+  .nav-item:hover { background: transparent; }
+  .matrix-cell:hover { outline-color: transparent; transform: none; }
+}
+
+/* ------------------------------------------------------- bouton retour */
+@media (max-width: 820px) {
+  .back-btn {
+    margin-left: calc(var(--sp-2) * -1); flex-shrink: 0;
+    width: 38px; min-width: 38px; height: 38px;
+  }
+  .back-btn svg { width: 20px; height: 20px; }
+}
+
+/* ------------------------------------------------------ filtres repliables */
+.filters-toggle { display: none; }
+.filters-body { display: flex; }
+
+@media (max-width: 820px) {
+  .filters-toggle {
+    display: flex; align-items: center; gap: var(--sp-2); width: 100%;
+    padding: 11px var(--sp-4); border: 1px solid var(--border);
+    border-radius: var(--r-md); background: var(--surface);
+    color: var(--text-muted); font-size: var(--fs-base); font-weight: 550;
+  }
+  .filters-toggle svg { width: 16px; height: 16px; }
+  .filters-toggle-label { flex: 1; text-align: left; }
+  .filters-chevron { transition: transform 160ms; }
+  .filters.open .filters-chevron { transform: rotate(180deg); }
+  .filters-body { display: none; flex-direction: column; margin-top: var(--sp-3); }
+  .filters.open .filters-body { display: flex; }
+  .filters-body > * { width: 100% !important; }
+  .filters-body .input, .filters-body .select { width: 100% !important; }
+}
+
+/* ------------------------------------------------------- bandeau hors ligne */
+.offline-bar {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 90;
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: calc(var(--safe-top) + 7px) var(--sp-4) 7px;
+  background: var(--warning); color: #15120a;
+  font-size: var(--fs-sm); font-weight: 550; line-height: 1.35;
+}
+.offline-bar svg { width: 15px; height: 15px; flex-shrink: 0; stroke-width: 2; }
+/* L'en-tête descend pour ne pas passer sous le bandeau. */
+:root.offline .topbar { top: 0; }
+:root.offline .main { padding-top: 46px; }
+
+/* En mode autonome (lancé depuis l'écran d'accueil), l'application occupe
+   toute la hauteur : la barre d'état du téléphone est transparente et
+   l'en-tête doit descendre sous l'encoche. */
+:root.standalone .topbar { padding-top: calc(var(--safe-top) + 12px); }
+
+/* Le service worker n'a pas pu s'enregistrer (origine non sécurisée) :
+   l'application fonctionne, mais sans mode hors ligne. */
+:root.no-sw .offline-only { display: none; }
+
+/* ------------------------------------------- agenda vertical du mois */
+/* Remplace la grille de sept colonnes sur téléphone : à 390 px, une case
+   de mois ne peut afficher qu'un titre tronqué à trois lettres. */
+.agenda { display: flex; flex-direction: column; }
+.agenda-day {
+  display: grid; grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: var(--sp-3); align-items: start;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.agenda-day:last-child { border-bottom: none; }
+.agenda-day.today { background: var(--accent-dim); }
+.agenda-sep { height: var(--sp-2); background: var(--surface-2);
+              border-bottom: 1px solid var(--border-subtle); }
+
+.agenda-date { display: flex; flex-direction: column; align-items: center;
+               gap: 1px; padding-top: 2px; }
+.agenda-dow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+              color: var(--text-faint); }
+.agenda-num { font-size: 19px; font-weight: 650; line-height: 1.05;
+              font-variant-numeric: tabular-nums; }
+.agenda-day.today .agenda-num { color: var(--accent); }
+.agenda-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 2px; }
+
+.agenda-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.agenda-item {
+  display: flex; align-items: center; gap: var(--sp-2); min-width: 0;
+  border-left: 3px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: var(--surface-2); padding: 7px var(--sp-2) 7px var(--sp-3);
+  min-height: 40px;
+}
+.agenda-item.planned { border-left-style: dashed; background: transparent;
+                       border-left-color: var(--text-faint); }
+.agenda-item.event { border-left-color: var(--danger); color: var(--danger);
+                     font-weight: 600; font-size: var(--fs-sm); }
+.agenda-item-main { display: flex; flex-direction: column; gap: 1px;
+                    min-width: 0; flex: 1; }
+.agenda-item-name { font-size: var(--fs-sm); font-weight: 560; }
+.agenda-item-meta { font-size: 11px; color: var(--text-muted);
+                    font-variant-numeric: tabular-nums; }
+.agenda-icon { width: 14px; height: 14px; flex-shrink: 0; }
+.agenda-chevron { width: 15px; height: 15px; color: var(--text-faint);
+                  flex-shrink: 0; }
+.agenda-rest { font-size: var(--fs-sm); color: var(--text-faint);
+               padding: 7px 0; }
+.agenda-load { font-size: 11px; color: var(--text-muted); padding-top: 4px;
+               min-width: 34px; text-align: right;
+               font-variant-numeric: tabular-nums; }
+.agenda-load strong { display: block; font-size: var(--fs-sm);
+                      color: var(--text); font-weight: 620; }
+
+/* Dans la barre du haut, les actions défilent déjà horizontalement :
+   leur faire passer une ligne en plus laisserait un bouton seul en dessous. */
+@media (max-width: 820px) {
+  .topbar-actions .row-tight, .topbar-actions .between { flex-wrap: nowrap; }
+  .topbar-actions > * { flex-shrink: 0; }
+  .topbar-actions .row-tight { width: 100%; }
+}
+
+.agenda-legend { display: flex; gap: var(--sp-4); flex-wrap: wrap;
+                 font-size: var(--fs-sm); color: var(--text-muted);
+                 padding: 0 var(--sp-1); }
+.agenda-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.agenda-key { width: 3px; height: 14px; background: var(--accent);
+              border-radius: 2px; display: inline-block; }
+.agenda-key.planned { background: none;
+                      border-left: 3px dashed var(--text-faint); width: 0; }
+.agenda-key.event { background: var(--danger); }

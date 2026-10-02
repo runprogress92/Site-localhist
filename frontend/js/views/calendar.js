@@ -1,12 +1,19 @@
 /**
  * Calendrier mensuel : réalisé, planifié, bien-être et objectifs sur une
  * même grille. La couleur de fond d'un jour porte sa charge.
+ *
+ * Sur téléphone, la grille de sept colonnes devient un agenda vertical :
+ * à 390 px de large, une case de mois fait 44 px et ne montre qu'un titre
+ * tronqué à trois lettres, ce qui n'apprend rien. La liste garde les mêmes
+ * informations — séance réalisée, séance planifiée, objectif, charge — mais
+ * lisibles.
  */
 import { api } from '../lib/api.js';
 import { el, icon, mount } from '../lib/dom.js';
 import * as F from '../lib/format.js';
 import { navigate } from '../lib/router.js';
 import { store } from '../lib/store.js';
+import { viewport } from '../lib/viewport.js';
 import {
   avatar, card, emptyState, notifyError, pageTitle, select, setTopbar, statTile,
 } from '../lib/ui.js';
@@ -36,14 +43,15 @@ export async function render(root, context) {
       el('div.row-tight', [
         select(store.athletes.map(a => ({
           value: a.id, label: `${a.first_name} ${a.last_name}`, selected: a.id === athleteId,
-        })), { style: { width: '190px' },
+        })), { style: viewport.isMobile
+                 ? { flex: '1 1 auto', minWidth: '0' } : { width: '190px' },
                onchange: (e) => { athleteId = Number(e.target.value); load(); } }),
         el('button.btn.sm.icon', {
           onclick: () => { cursor.setMonth(cursor.getMonth() - 1); load(); },
         }, [icon('chevronLeft')]),
         el('button.btn.sm', {
           onclick: () => { cursor = new Date(); cursor.setDate(1); load(); },
-        }, "Aujourd'hui"),
+        }, viewport.isMobile ? "Auj." : "Aujourd'hui"),
         el('button.btn.sm.icon', {
           onclick: () => { cursor.setMonth(cursor.getMonth() + 1); load(); },
         }, [icon('chevronRight')]),
@@ -112,19 +120,101 @@ export async function render(root, context) {
           el('div.chip', [el('strong', block.phase || block.name),
             el('span.faint', `${F.date(block.start_date, 'short')} → `
                            + `${F.date(block.end_date, 'short')}`)]))) : null,
-        card(null, el('div', [
-          el('div.cal-grid', { style: { marginBottom: '6px' } },
-            F.DAYS_SHORT.map(d => el('div.cal-head', d))),
-          el('div.cal-grid', cells),
-        ])),
-        el('div.row-tight.section', { style: { fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' } }, [
-          el('span.badge', 'séance réalisée'),
-          el('span.badge', { style: { borderStyle: 'dashed' } }, 'séance planifiée'),
-          el('span.badge.neg', 'objectif'),
-          el('span', '— l’intensité du fond indique la charge du jour'),
-        ]),
+        viewport.isMobile
+          ? agenda(data.days, athlete, cursor)
+          : card(null, el('div', [
+              el('div.cal-grid', { style: { marginBottom: '6px' } },
+                F.DAYS_SHORT.map(d => el('div.cal-head', d))),
+              el('div.cal-grid', cells),
+            ])),
+        viewport.isMobile
+          ? el('div.agenda-legend.section', [
+              el('span', [el('i.agenda-key'), 'réalisée']),
+              el('span', [el('i.agenda-key.planned'), 'planifiée']),
+              el('span', [el('i.agenda-key.event'), 'objectif']),
+            ])
+          : el('div.row-tight.section', { style: { fontSize: 'var(--fs-sm)',
+                                                   color: 'var(--text-muted)' } }, [
+              el('span.badge', 'séance réalisée'),
+              el('span.badge', { style: { borderStyle: 'dashed' } }, 'séance planifiée'),
+              el('span.badge.neg', 'objectif'),
+              el('span', '— l’intensité du fond indique la charge du jour'),
+            ]),
       ]);
     } catch (error) { notifyError(error); }
   }
   await load();
+}
+
+/**
+ * Agenda vertical du mois, pour téléphone.
+ *
+ * Tous les jours du mois sont listés, y compris ceux sans séance : la
+ * succession des jours de repos fait partie de la lecture d'une semaine
+ * d'entraînement, la masquer donnerait un planning plus dense qu'il n'est.
+ */
+function agenda(days, athlete, cursor) {
+  const month = cursor.getMonth();
+  const rows = [];
+  let lastWeek = null;
+
+  for (const day of days) {
+    const d = F.parseDate(day.date);
+    if (d.getMonth() !== month) continue;
+    const week = weekIndex(d);
+    if (lastWeek !== null && week !== lastWeek) {
+      rows.push(el('div.agenda-sep'));
+    }
+    lastWeek = week;
+
+    const items = [
+      ...day.events.map(event =>
+        el('div.agenda-item.event', [icon('target', 'agenda-icon'), event.name])),
+      ...day.activities.map(activity => el('div.agenda-item', {
+        onclick: () => navigate(`/seance/${activity.id}`),
+        style: { borderLeftColor: athlete.accent },
+      }, [
+        el('div.agenda-item-main', [
+          el('span.agenda-item-name.truncate', activity.name),
+          el('span.agenda-item-meta',
+             [F.duration(activity.duration_s, 'hm'),
+              activity.distance_m ? F.distance(activity.distance_m, 1) : null,
+             ].filter(Boolean).join(' · ')),
+        ]),
+        icon('chevronRight', 'agenda-chevron'),
+      ])),
+      ...day.planned.filter(p => p.status === 'planned').map(item =>
+        el('div.agenda-item.planned', [
+          el('div.agenda-item-main', [
+            el('span.agenda-item-name.truncate', item.name),
+            item.description
+              ? el('span.agenda-item-meta.truncate', item.description) : null,
+          ]),
+        ])),
+    ];
+
+    rows.push(el(`div.agenda-day${day.is_today ? '.today' : ''}`, [
+      el('div.agenda-date', [
+        el('span.agenda-dow', F.DAYS_SHORT[(d.getDay() + 6) % 7]),
+        el('span.agenda-num', String(d.getDate())),
+        day.wellness?.readiness != null
+          ? el('span.agenda-dot', {
+              title: `Disponibilité ${F.num(day.wellness.readiness, 0)}/100`,
+              style: { background: F.readinessColor(day.wellness.readiness_flag) },
+            }) : null,
+      ]),
+      el('div.agenda-body', items.length ? items : el('div.agenda-rest', 'repos')),
+      day.load?.load
+        ? el('div.agenda-load', [el('strong', F.num(day.load.load, 0)),
+                                 el('span.faint', 'pts')])
+        : el('div.agenda-load'),
+    ]));
+  }
+  return el('div.card.flush.section', el('div.agenda', rows));
+}
+
+/** Numéro de semaine ISO approché : suffit à séparer les semaines affichées. */
+function weekIndex(d) {
+  const monday = F.addDays(d, -((d.getDay() + 6) % 7));
+  return Math.floor(monday.getTime() / 86400000);
 }

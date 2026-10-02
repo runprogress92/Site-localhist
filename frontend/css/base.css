@@ -16,6 +16,9 @@ html, body {
 body { overflow: hidden; }
 
 h1, h2, h3, h4, h5 { margin: 0; font-weight: 600; letter-spacing: -0.011em; }
+/* Les listes de définition portent une marge verticale par défaut qui créait
+   un vide sous chaque bloc de chiffres. */
+dl, dd { margin: 0; }
 h1 { font-size: var(--fs-2xl); letter-spacing: -0.02em; }
 h2 { font-size: var(--fs-lg); }
 h3 { font-size: var(--fs-md); }

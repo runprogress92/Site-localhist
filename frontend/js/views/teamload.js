@@ -40,6 +40,18 @@ export async function render(root, context) {
         card('Volume et récupération', dataTable({
           sortable: true, initialSort: { key: 'total', dir: 'desc' },
           onRowClick: (row) => navigate(`/athlete/${row.athlete.id}`),
+          card: {
+            accent: (row) => row.athlete.accent,
+            avatar: (row) => avatar(row.athlete, 'sm'),
+            title: (row) => `${row.athlete.first_name} ${row.athlete.last_name}`,
+            badge: (row) => formBadge(row.state.tsb, row.state.form),
+            metrics: (row) => [
+              ['Charge', F.num(row.total, 0)],
+              ['Moy./jour', F.num(row.mean, 0)],
+              ['Repos', `${row.restDays} j`],
+              ['Condition', F.num(row.state.ctl, 1)],
+            ],
+          },
           columns: [
             { label: 'Athlète', key: 'name', render: (row) => el('div.row-tight', [
                 avatar(row.athlete, 'sm'),

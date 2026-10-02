@@ -101,6 +101,17 @@ export async function render(root, context) {
         card(spec.label, el('div.chart-box', { id: 'compare-chart' }),
           { subtitle: spec.help, className: 'section' }),
         card('Statistiques sur la période', dataTable({
+          card: {
+            accent: (row) => row.athlete.accent,
+            avatar: (row) => avatar(row.athlete, 'sm'),
+            title: (row) => `${row.athlete.first_name} ${row.athlete.last_name}`,
+            metrics: (row) => [
+              ['Actuel', F.num(row.stats.last, spec.decimals)],
+              ['Moyenne', F.num(row.stats.mean, spec.decimals)],
+              ['Min', F.num(row.stats.min, spec.decimals)],
+              ['Max', F.num(row.stats.max, spec.decimals)],
+            ],
+          },
           columns: [
             { label: 'Athlète', render: (row) => el('div.row-tight', {
                 style: { cursor: 'pointer' },

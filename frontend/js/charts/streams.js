@@ -324,11 +324,13 @@ export function loadMatrix(container, { dates, matrix, onCellClick = null }) {
           cursor: onCellClick ? 'pointer' : 'default',
         },
       });
-      node.addEventListener('mousemove', (event) => showTooltip(tooltipRows(
+      const cellTip = (event) => showTooltip(tooltipRows(
         `${row.athlete.first_name} ${row.athlete.last_name}`,
         [['Date', F.date(cell.date, 'weekday')],
          ['Charge', cell.load ? F.num(cell.load, 0) : 'repos'],
-         cell.tsb != null ? ['Forme', F.signed(cell.tsb, 0)] : null]), event));
+         cell.tsb != null ? ['Forme', F.signed(cell.tsb, 0)] : null]), event);
+      node.addEventListener('mousemove', cellTip);
+      node.addEventListener('touchstart', (e) => cellTip(e.touches[0]), { passive: true });
       node.addEventListener('mouseleave', hideTooltip);
       if (onCellClick) node.addEventListener('click', () => onCellClick(row.athlete, cell));
       line.appendChild(node);

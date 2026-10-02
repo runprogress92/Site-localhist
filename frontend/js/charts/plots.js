@@ -483,11 +483,14 @@ export function zoneBars(container, { zones, distribution, showLabels = true }) 
       style: { width: `${share}%`, background: F.ZONE_COLORS[i % 7] },
       title: `${zone.name || `Zone ${i + 1}`} — ${F.duration(d.seconds)} (${share.toFixed(1)} %)`,
     }, share > 6 ? `${Math.round(share)} %` : '');
-    segment.addEventListener('mousemove', (event) => showTooltip(tooltipRows(
+    const segmentTip = (event) => showTooltip(tooltipRows(
       zone.name || `Zone ${i + 1}`,
       [['Temps', F.duration(d.seconds)], ['Part', `${share.toFixed(1)} %`],
        zone.low ? ['Plage', `${F.num(zone.low, 0)}–${zone.high ? F.num(zone.high, 0) : '∞'}`] : null],
-      zone.purpose), event));
+      zone.purpose), event);
+    segment.addEventListener('mousemove', segmentTip);
+    segment.addEventListener('touchstart', (e) => segmentTip(e.touches[0]),
+                             { passive: true });
     segment.addEventListener('mouseleave', hideTooltip);
     bar.appendChild(segment);
   });
@@ -610,10 +613,12 @@ export function scatter(container, {
           r: point.r || 3.6, fill: point.color || color, opacity: 0.72,
           style: { cursor: onPointClick ? 'pointer' : 'default' },
         });
-        dot.addEventListener('mousemove', (event) => showTooltip(
+        const dotTip = (event) => showTooltip(
           tooltipFor ? tooltipFor(point)
             : tooltipRows(point.label || '', [[xLabel || 'x', formatX(point.x)],
-                                              [yLabel || 'y', formatY(point.y)]]), event));
+                                              [yLabel || 'y', formatY(point.y)]]), event);
+        dot.addEventListener('mousemove', dotTip);
+        dot.addEventListener('touchstart', (e) => dotTip(e.touches[0]), { passive: true });
         dot.addEventListener('mouseleave', hideTooltip);
         if (onPointClick) dot.addEventListener('click', () => onPointClick(point));
         g.appendChild(dot);

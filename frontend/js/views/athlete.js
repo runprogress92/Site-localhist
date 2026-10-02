@@ -99,7 +99,7 @@ function header(athlete, summary) {
                  `${F.num(athlete.totals.sessions)} séances enregistrées · `
                  + `${F.duration(athlete.totals.duration_s, 'hm')} · `
                  + `${F.distance(athlete.totals.distance_m, 0)} · `
-                 + `${F.num(athlete.totals.elevation_m, 0)} m D+`)
+                 + `${F.num(athlete.totals.elevation_m, 0)}\u00a0m D+`)
             : null,
         ]),
       ]),
@@ -255,6 +255,15 @@ function recentActivities(activities) {
   if (!activities.length) return el('div.empty', 'Aucune séance sur la période.');
   return dataTable({
     onRowClick: (row) => navigate(`/seance/${row.id}`),
+    card: {
+      accent: () => 'var(--accent)',
+      title: (row) => row.name || '—',
+      subtitle: (row) => `${F.sportLabel(row.sport)} · ${F.relative(row.local_date)}`,
+      metrics: (row) => [
+        ['Durée', F.duration(row.duration_s, 'hm')],
+        ['Charge', F.num(row.load, 0)],
+      ],
+    },
     columns: [
       { label: 'Date', render: (row) => el('div', [
           el('div.mono', F.date(row.local_date, 'short')),
@@ -456,6 +465,20 @@ function activityTable(activities) {
   return dataTable({
     sortable: true,
     onRowClick: (row) => navigate(`/seance/${row.id}`),
+    card: {
+      accent: () => 'var(--accent)',
+      title: (row) => row.name || '—',
+      subtitle: (row) => `${F.sportLabel(row.sport)} · `
+                       + `${F.date(row.local_date, 'medium')} à ${F.time(row.start_time)}`,
+      badge: (row) => row.rpe ? el('span.badge', `RPE ${row.rpe}`) : null,
+      metrics: (row) => [
+        ['Durée', F.duration(row.duration_s, 'hm')],
+        row.distance_m ? ['Distance', F.distance(row.distance_m)] : null,
+        row.avg_hr ? ['FC moy', F.num(row.avg_hr, 0)] : null,
+        row.np_w ? ['NP', `${F.num(row.np_w, 0)} W`] : null,
+        ['Charge', F.num(row.load, 0)],
+      ],
+    },
     columns: [
       { label: 'Date', key: 'local_date', render: (row) => el('div', [
           el('div.mono', F.date(row.local_date, 'medium')),

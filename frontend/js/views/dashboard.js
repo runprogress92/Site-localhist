@@ -190,6 +190,26 @@ function rosterTable(athletes) {
     sortable: true,
     initialSort: { key: 'ctl', dir: 'desc' },
     onRowClick: (row) => navigate(`/athlete/${row.id}`),
+    // Sur téléphone : quatre chiffres suffisent à décider s'il faut ouvrir
+    // la fiche. Le reste tient dans la fiche elle-même.
+    card: {
+      accent: (row) => row.alerts?.length
+        ? F.severityColor(row.alert_level) : row.accent,
+      avatar: (row) => avatar(row, 'sm'),
+      title: (row) => `${row.first_name} ${row.last_name}`,
+      subtitle: (row) => row.discipline || F.sportLabel(row.primary_sport),
+      badge: (row) => row.status === 'injured'
+        ? el('span.badge.neg', 'blessé')
+        : readinessBadge(row.readiness, row.readiness_flag),
+      metrics: (row) => [
+        ['Condition', el('span', F.num(row.ctl, 1))],
+        ['Forme', el('span', { style: { color: F.formColor(row.tsb) } },
+                     F.signed(row.tsb, 0))],
+        ['Ratio A:C', el('span', { style: { color: F.acwrColor(row.acwr) } },
+                          F.num(row.acwr, 2))],
+        ['Semaine', el('span', F.duration(row.week?.duration_s, 'hm'))],
+      ],
+    },
     columns: [
       {
         label: 'Athlète', key: 'last_name', width: '24%',
@@ -252,6 +272,18 @@ function recentTable(activities) {
   }
   return dataTable({
     onRowClick: (row) => navigate(`/seance/${row.id}`),
+    card: {
+      accent: (row) => row.accent,
+      avatar: (row) => avatar(row, 'sm'),
+      title: (row) => row.name || '—',
+      subtitle: (row) => `${row.first_name} ${row.last_name} · `
+                       + `${F.sportLabel(row.sport)} · ${F.relative(row.local_date)}`,
+      metrics: (row) => [
+        ['Durée', F.duration(row.duration_s, 'hm')],
+        ['Distance', F.distance(row.distance_m)],
+        ['Charge', F.num(row.load, 0)],
+      ],
+    },
     columns: [
       { label: 'Athlète', render: (row) => el('div.row-tight', [
           avatar(row, 'sm'), el('span.truncate', `${row.first_name} ${row.last_name}`)]) },

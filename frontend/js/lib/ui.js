@@ -4,6 +4,8 @@
  */
 import { el, clear, icon, mount } from './dom.js';
 import * as F from './format.js';
+import { currentRoute } from './router.js';
+import { viewport } from './viewport.js';
 
 /* ---------------------------------------------------------- notifications */
 export function toast(message, kind = 'info', duration = 4200) {
@@ -76,14 +78,31 @@ export function setTopbar(children) {
   mount(document.getElementById('topbar'), children);
 }
 
+/**
+ * En-tête de page.
+ *
+ * Sur téléphone, un chevron de retour précède le titre dès qu'on n'est plus
+ * sur une destination de la barre d'onglets : sans lui, revenir d'une fiche
+ * athlète à la liste suppose de deviner quel onglet la contient.
+ */
 export function pageTitle(title, subtitle = null, actions = null) {
+  const ROOTS = ['/', '/bien-etre', '/calendrier', '/seances', '/analyse',
+                 '/charge', '/connexions', '/reglages'];
+  const showBack = viewport.isMobile && !ROOTS.includes(currentRoute());
   return [
+    showBack ? el('button.btn.ghost.icon.back-btn', {
+      onclick: () => window.history.back(),
+      'aria-label': 'Retour',
+    }, [icon('chevronLeft')]) : null,
     el('div.col', { style: { gap: '1px' } }, [
       el('h1', title),
       subtitle ? el('div.breadcrumb', subtitle) : null,
     ]),
     el('div.spacer'),
-    actions,
+    // Sur téléphone, cette rangée passe sous le titre et défile
+    // horizontalement : des boutons qui sortent de l'écran sont des
+    // boutons qui n'existent pas.
+    actions ? el('div.topbar-actions', actions) : null,
   ];
 }
 
@@ -186,9 +205,21 @@ export function scaleField(label, name, value, onChange, hint = null) {
 }
 
 /* ------------------------------------------------------------- tableaux */
+/**
+ * Tableau sur grand écran, liste de cartes sur téléphone.
+ *
+ * Un tableau de dix colonnes sur 390 px impose un défilement horizontal que
+ * personne n'utilise : les colonnes de droite deviennent invisibles. Fournir
+ * un descripteur `card` fait basculer le même jeu de données vers des
+ * cartes empilées, où chaque ligne se lit d'un coup d'œil.
+ *
+ * `card` : { title, subtitle, accent, badge, metrics } — `metrics` renvoie
+ * une liste de paires [libellé, valeur] à afficher en grille.
+ */
 export function dataTable({ columns, rows, onRowClick = null, empty = 'Aucune donnée',
-                            sortable = false, initialSort = null }) {
+                            sortable = false, initialSort = null, card = null }) {
   if (!rows.length) return el('div.empty', empty);
+  if (card && viewport.isMobile) return cardList({ rows, onRowClick, card });
   let sortKey = initialSort?.key || null;
   let sortDir = initialSort?.dir || 'desc';
 
@@ -234,6 +265,30 @@ export function dataTable({ columns, rows, onRowClick = null, empty = 'Aucune do
   renderHead(); renderBody();
   table.appendChild(thead); table.appendChild(tbody);
   return el('div.table-wrap', [table]);
+}
+
+function cardList({ rows, onRowClick, card }) {
+  return el('div.row-cards', rows.map(row => {
+    const metrics = (card.metrics ? card.metrics(row) : []).filter(Boolean);
+    return el('div.row-card', {
+      style: { borderLeftColor: card.accent ? card.accent(row) : 'var(--border)',
+               cursor: onRowClick ? 'pointer' : 'default' },
+      onclick: onRowClick ? () => onRowClick(row) : null,
+    }, [
+      el('div.row-card-head', [
+        card.avatar ? card.avatar(row) : null,
+        el('div', { style: { minWidth: 0, flex: 1 } }, [
+          el('div.row-card-title.truncate', card.title(row)),
+          card.subtitle ? el('div.row-card-sub.truncate', card.subtitle(row)) : null,
+        ]),
+        card.badge ? card.badge(row) : null,
+      ]),
+      metrics.length
+        ? el('dl.row-card-metrics', metrics.flatMap(([label, value]) =>
+            el('div.row-card-metric', [el('dt', label), el('dd', value)])))
+        : null,
+    ]);
+  }));
 }
 
 /* -------------------------------------------------------------- badges */

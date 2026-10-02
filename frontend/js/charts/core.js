@@ -136,6 +136,15 @@ export function showTooltip(content, event, anchor) {
   if (typeof content === 'string') node.innerHTML = content;
   else node.appendChild(content);
   node.style.display = 'block';
+
+  // Sur téléphone, l'infobulle est ancrée en bas de l'écran par la feuille
+  // mobile : la placer sous le doigt la rendrait invisible, puisque la main
+  // couvre précisément l'endroit touché.
+  if (window.innerWidth <= 820) {
+    node.style.left = '';
+    node.style.top = '';
+    return;
+  }
   const box = node.getBoundingClientRect();
   const margin = 14;
   let x = (event.clientX ?? 0) + margin;
@@ -313,29 +322,59 @@ export function crosshair(g, inner, xValues, xScale, onMove, onLeave) {
   g.appendChild(line);
   const overlay = el('rect', {
     x: 0, y: 0, width: inner.width, height: inner.height,
-    fill: 'transparent', style: { cursor: 'crosshair' },
+    fill: 'transparent', style: { cursor: 'crosshair', touchAction: 'pan-y' },
   });
   g.appendChild(overlay);
 
-  overlay.addEventListener('mousemove', (event) => {
+  function pointAt(clientX) {
     const box = overlay.getBoundingClientRect();
-    const px = ((event.clientX - box.left) / box.width) * inner.width;
+    const px = ((clientX - box.left) / box.width) * inner.width;
     let best = 0, bestDistance = Infinity;
     for (let i = 0; i < xValues.length; i += 1) {
       const distance = Math.abs(xScale(xValues[i]) - px);
       if (distance < bestDistance) { bestDistance = distance; best = i; }
     }
-    const x = xScale(xValues[best]);
+    return best;
+  }
+
+  function show(index, event) {
+    const x = xScale(xValues[index]);
     line.setAttribute('x1', x.toFixed(1));
     line.setAttribute('x2', x.toFixed(1));
     line.style.opacity = 1;
-    onMove(best, event, x);
-  });
-  overlay.addEventListener('mouseleave', () => {
+    onMove(index, event, x);
+  }
+
+  function clear() {
     line.style.opacity = 0;
     hideTooltip();
     if (onLeave) onLeave();
-  });
+  }
+
+  overlay.addEventListener('mousemove', (event) => show(pointAt(event.clientX), event));
+  overlay.addEventListener('mouseleave', clear);
+
+  // Lecture au doigt : sans survol, un graphique n'est qu'une image. On
+  // suit le déplacement du doigt le long de la courbe, tout en laissant le
+  // défilement vertical de la page fonctionner (touch-action: pan-y).
+  let touching = false;
+  overlay.addEventListener('touchstart', (event) => {
+    touching = true;
+    show(pointAt(event.touches[0].clientX), event.touches[0]);
+  }, { passive: true });
+  overlay.addEventListener('touchmove', (event) => {
+    if (!touching) return;
+    show(pointAt(event.touches[0].clientX), event.touches[0]);
+  }, { passive: true });
+  const release = () => {
+    touching = false;
+    // L'infobulle reste un instant après le relâchement : elle disparaîtrait
+    // avant même d'avoir été lue autrement.
+    setTimeout(clear, 2200);
+  };
+  overlay.addEventListener('touchend', release, { passive: true });
+  overlay.addEventListener('touchcancel', release, { passive: true });
+
   return { line, overlay };
 }
 

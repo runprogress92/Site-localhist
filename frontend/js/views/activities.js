@@ -5,7 +5,7 @@ import * as F from '../lib/format.js';
 import { navigate } from '../lib/router.js';
 import { store } from '../lib/store.js';
 import {
-  avatar, card, dataTable, emptyState, notifyError, pageTitle, select,
+  avatar, card, dataTable, emptyState, field, notifyError, pageTitle, select,
   setTopbar, statTile, toast,
 } from '../lib/ui.js';
 import { openUpload } from './athlete.js';
@@ -30,7 +30,9 @@ export async function render(root, context) {
       }, [icon('upload'), 'Importer']),
     ])));
 
-  const filters = el('div.row-tight.wrap.section', [
+  // Sur téléphone, les filtres occupaient un écran entier avant le premier
+  // résultat. Ils sont repliés par défaut et s'ouvrent à la demande.
+  const filterBody = el('div.filters-body.row-tight.wrap', [
     el('div.search-box', [
       icon('search'),
       el('input.input', {
@@ -47,8 +49,21 @@ export async function render(root, context) {
       ...Object.entries(store.sports || F.SPORT_LABELS).map(([k, v]) => ({ value: k, label: v }))],
       { style: { width: '170px' },
         onchange: (e) => { state.sport = e.target.value; state.page = 0; load(); } }),
-    el('input.input', { type: 'date', style: { width: '150px' },
-      onchange: (e) => { state.from = e.target.value; state.page = 0; load(); } }),
+    field('À partir du', el('input.input', { type: 'date', style: { width: '150px' },
+      onchange: (e) => { state.from = e.target.value; state.page = 0; load(); } })),
+  ]);
+
+  const filters = el('div.filters.section', [
+    el('button.filters-toggle', {
+      onclick: () => {
+        filters.classList.toggle('open');
+        const open = filters.classList.contains('open');
+        filters.querySelector('.filters-toggle-label').textContent =
+          open ? 'Masquer les filtres' : 'Filtrer et rechercher';
+      },
+    }, [icon('filter'), el('span.filters-toggle-label', 'Filtrer et rechercher'),
+        icon('chevronDown', 'filters-chevron')]),
+    filterBody,
   ]);
 
   const summary = el('div.grid.grid-4.section');
@@ -101,6 +116,19 @@ export async function render(root, context) {
   function table(rows) {
     return dataTable({
       onRowClick: (row) => navigate(`/seance/${row.id}`),
+      card: {
+        accent: (row) => row.accent,
+        avatar: (row) => avatar({ ...row, accent: row.accent }, 'sm'),
+        title: (row) => row.name || '—',
+        subtitle: (row) => `${row.first_name} ${row.last_name.charAt(0)}. · `
+                         + `${row.sport_label} · ${F.date(row.local_date, 'medium')}`,
+        metrics: (row) => [
+          ['Durée', F.duration(row.duration_s, 'hm')],
+          row.distance_m ? ['Distance', F.distance(row.distance_m)] : null,
+          row.avg_hr ? ['FC moy', `${F.num(row.avg_hr, 0)}`] : null,
+          ['Charge', F.num(row.load, 0)],
+        ],
+      },
       columns: [
         { label: 'Athlète', render: (row) => el('div.row-tight', [
             avatar({ ...row, accent: row.accent }, 'sm'),
