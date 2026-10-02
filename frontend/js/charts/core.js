@@ -121,6 +121,18 @@ export function areaPath(points, baseline) {
 
 /* ------------------------------------------------------------- infobulle */
 let tooltipNode = null;
+let dismissTimer = null;
+let dismissBound = false;
+
+/**
+ * Durée d'affichage d'une infobulle ouverte au doigt.
+ *
+ * À la souris, « le pointeur a quitté le graphique » est un évènement ; au
+ * doigt, il n'existe pas. Sans effacement explicite, l'infobulle — qui
+ * occupe toute la largeur de l'écran sur téléphone — restait en travers de
+ * la page, y compris après un changement d'onglet ou de vue.
+ */
+const TOUCH_LINGER_MS = 2600;
 
 export function tooltip() {
   if (!tooltipNode) {
@@ -130,12 +142,35 @@ export function tooltip() {
   return tooltipNode;
 }
 
+/** Y a-t-il un survol possible, ou l'interface est-elle pilotée au doigt ? */
+function touchDriven() {
+  return window.matchMedia('(hover: none)').matches || window.innerWidth <= 820;
+}
+
+/**
+ * Deux filets pour qu'une infobulle tactile finisse toujours par disparaître :
+ * le contact suivant, où qu'il ait lieu, et un délai.
+ */
+function armAutoDismiss() {
+  clearTimeout(dismissTimer);
+  dismissTimer = null;
+  if (!touchDriven()) return;
+  dismissTimer = setTimeout(hideTooltip, TOUCH_LINGER_MS);
+  if (dismissBound) return;
+  dismissBound = true;
+  // En phase de capture : le contact est vu avant le graphique, qui
+  // réaffiche aussitôt son infobulle s'il en est la cible. Un contact
+  // ailleurs — un onglet, un bouton, la barre du bas — l'efface donc.
+  document.addEventListener('touchstart', hideTooltip, true);
+}
+
 export function showTooltip(content, event, anchor) {
   const node = tooltip();
   clear(node);
   if (typeof content === 'string') node.innerHTML = content;
   else node.appendChild(content);
   node.style.display = 'block';
+  armAutoDismiss();
 
   // Sur téléphone, l'infobulle est ancrée en bas de l'écran par la feuille
   // mobile : la placer sous le doigt la rendrait invisible, puisque la main
@@ -156,6 +191,8 @@ export function showTooltip(content, event, anchor) {
 }
 
 export function hideTooltip() {
+  clearTimeout(dismissTimer);
+  dismissTimer = null;
   if (tooltipNode) tooltipNode.style.display = 'none';
 }
 
@@ -358,8 +395,10 @@ export function crosshair(g, inner, xValues, xScale, onMove, onLeave) {
   // suit le déplacement du doigt le long de la courbe, tout en laissant le
   // défilement vertical de la page fonctionner (touch-action: pan-y).
   let touching = false;
+  let linger = null;
   overlay.addEventListener('touchstart', (event) => {
     touching = true;
+    clearTimeout(linger);
     show(pointAt(event.touches[0].clientX), event.touches[0]);
   }, { passive: true });
   overlay.addEventListener('touchmove', (event) => {
@@ -368,9 +407,15 @@ export function crosshair(g, inner, xValues, xScale, onMove, onLeave) {
   }, { passive: true });
   const release = () => {
     touching = false;
-    // L'infobulle reste un instant après le relâchement : elle disparaîtrait
-    // avant même d'avoir été lue autrement.
-    setTimeout(clear, 2200);
+    // Le trait disparaît un instant après le relâchement : l'effacer au
+    // doigt levé ne laisserait rien à lire. L'infobulle, elle, est effacée
+    // par le minuteur partagé de showTooltip — un graphique ne doit pas
+    // pouvoir effacer celle d'un autre.
+    clearTimeout(linger);
+    linger = setTimeout(() => {
+      line.style.opacity = 0;
+      if (onLeave) onLeave();
+    }, TOUCH_LINGER_MS);
   };
   overlay.addEventListener('touchend', release, { passive: true });
   overlay.addEventListener('touchcancel', release, { passive: true });

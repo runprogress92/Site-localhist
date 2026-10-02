@@ -15,6 +15,7 @@ import { onLayoutChange, viewport } from './lib/viewport.js';
 import { removeBottomNav, renderBottomNav } from './lib/mobilenav.js';
 import { initPwa } from './lib/pwa.js';
 import { emptyState, loading, notifyError, setTopbar, toast } from './lib/ui.js';
+import { hideTooltip } from './charts/core.js';
 
 const content = () => document.getElementById('content');
 
@@ -119,6 +120,9 @@ function readinessDot(athlete) {
 /* ---------------------------------------------------------------- routes */
 function view(loader) {
   return async (context) => {
+    // Une infobulle de graphique vit sur <body>, pas dans la vue : sans cela
+    // elle survivrait au changement de page, affichée en travers de l'écran.
+    hideTooltip();
     mount(content(), loading());
     const module = await loader();
     if (context.token.stale) return;
@@ -188,7 +192,7 @@ async function boot() {
   renderNav();
   // Rotation du téléphone ou redimensionnement de la fenêtre : on repasse
   // d'une navigation à l'autre et on redessine la vue courante.
-  onLayoutChange(() => { renderNav(); resolveCurrent(); });
+  onLayoutChange(() => { hideTooltip(); renderNav(); resolveCurrent(); });
   subscribe(() => { /* la navigation est redessinée explicitement */ });
   start();
 
